@@ -1831,3 +1831,176 @@ b.onclick=function(){b.classList.remove("hit");void b.offsetWidth;b.classList.ad
 </script>
 <div id="mainAccountModal" style="position:fixed;inset:0;background:#05020acc;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999"><div style="width:min(520px,100%);background:#160b20;border:1px solid #6b398a;border-radius:22px;padding:22px;box-shadow:0 25px 100px #000b"><h2>👤 Sua conta Bora Live</h2><p id="mainAccountText" class="muted"></p><p style="color:#cfc1dc">O nome criado pela sua primeira conta fica bloqueado para evitar que suas compras e identidade sejam trocadas. O login Google usa o nome da conta Google.</p><button class="vb" id="mainAccountClose">Fechar</button><button class="send" id="mainAccountLogout" style="display:none">Sair da conta local</button></div></div><script>(function(){var b=document.getElementById('mainAccountBtn'),m=document.getElementById('mainAccountModal'),x=document.getElementById('mainAccountClose'),o=document.getElementById('mainAccountLogout'),tx=document.getElementById('mainAccountText');if(!b||!m)return;function show(){var a=JSON.parse(localStorage.getItem('bora_account_v1')||'null'),gn=localStorage.getItem('bl-google-name'),ge=localStorage.getItem('bl-google-email');if(a){tx.textContent='Conectado como '+a.name+' • '+(a.email||'Google');o.style.display='inline-block'}else if(gn&&ge){tx.textContent='Google disponível: '+gn+' • '+ge;o.style.display='none'}else{tx.textContent='Nenhuma conta vinculada neste navegador. Abra a Loja para criar uma conta ou faça login com Google.';o.style.display='none'}m.style.display='flex'}b.onclick=show;x.onclick=function(){m.style.display='none'};o.onclick=function(){localStorage.removeItem('bora_account_v1');m.style.display='none';toast('Você saiu da conta.')};})();</script></body>
 </html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#06040C">
+<title>Contatos e Desenvolvedores — Bora Live</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#06040C;color:#EDE9FE}
+body{padding:20px}.card{max-width:920px;margin:0 auto;background:#120E1F;border:1px solid #241C3A;border-radius:22px;padding:30px;box-shadow:0 20px 60px #0006}
+h1{margin:0 0 8px;font-size:clamp(28px,5vw,42px)}.intro{line-height:1.7;color:#C9C1D9;margin:0 0 24px}
+.team{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.creator{background:#1A1330;border:1px solid #2B2145;border-radius:16px;padding:20px;transition:transform .2s ease,border-color .2s ease}.creator:hover{transform:translateY(-2px);border-color:#8B5CF6}
+.name{font-size:22px;font-weight:850;margin:0 0 4px}.role{color:#A78BFA;font-weight:750;margin:0 0 12px}.desc{line-height:1.65;color:#C9C1D9;margin:0}.tag{display:inline-block;margin-bottom:12px;padding:5px 9px;border-radius:999px;background:#251A40;color:#D8CCFF;font-size:12px;font-weight:800}
+.box{background:#171126;border:1px solid #2B2145;border-radius:16px;padding:18px;margin:22px 0 8px}.box h2{margin:0 0 8px;font-size:20px}.box p{line-height:1.65;color:#C9C1D9;margin:0}.btn{display:inline-block;background:#8B5CF6;color:white;text-decoration:none;border-radius:12px;padding:11px 16px;font-weight:800;margin-top:18px}.btn:hover{filter:brightness(1.08)}
+@media(max-width:700px){body{padding:10px}.card{padding:20px;border-radius:17px}.team{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="card">
+<h1>👥 Contatos e Desenvolvedores</h1>
+<p class="intro">Conheça as pessoas que participaram da criação do Bora Live. Cada integrante ajudou em uma parte diferente do projeto, desde a ideia inicial até programação, loja, itens, chamadas e criação de servidores.</p>
+
+<section class="team" aria-label="Equipe do Bora Live">
+<article class="creator"><span class="tag">CRIADOR DO BORALIVE</span><h2 class="name">Vortex</h2><p class="role">Criador do Bora Live</p><p class="desc">Vortex teve a ideia de criar o Bora Live ainda na adolescência. O projeto nasceu dessa vontade de construir um espaço próprio para reunir pessoas, conversar e criar uma experiência social diferente.</p></article>
+
+<article class="creator"><span class="tag">PROGRAMAÇÃO</span><h2 class="name">Saifer</h2><p class="role">Programador do Bora Live</p><p class="desc">Saifer entrou na parte de programação para transformar as ideias do Bora Live em funções de verdade. Foi um trabalho cheio de desafios, testes e dificuldades na programação, mas ele continuou trabalhando para fazer o projeto funcionar e evoluir.</p></article>
+
+<article class="creator"><span class="tag">LOJA</span><h2 class="name">Mel</h2><p class="role">Criadora da Loja do Bora Live</p><p class="desc">Mel ficou responsável pela criação da loja do Bora Live, ajudando a transformar a ideia de ter um espaço de itens e personalizações em uma parte da experiência do aplicativo.</p></article>
+
+<article class="creator"><span class="tag">ITENS DA LOJA</span><h2 class="name">Spectro</h2><p class="role">Criador dos itens da Loja do Bora Live</p><p class="desc">Spectro trabalhou na criação dos itens da loja, dando forma aos elementos que os usuários podem encontrar nessa parte do Bora Live e ajudando a deixar a loja mais completa e interessante.</p></article>
+
+<article class="creator"><span class="tag">CALL E TELA</span><h2 class="name">Ônix</h2><p class="role">Criador da call e do compartilhamento de tela</p><p class="desc">Ônix ficou responsável por uma das partes mais importantes para a comunicação entre usuários: a call e o compartilhamento de tela. A ideia foi permitir que as pessoas pudessem conversar e compartilhar o que estavam fazendo dentro das possibilidades do Bora Live.</p></article>
+
+<article class="creator"><span class="tag">SERVIDORES</span><h2 class="name">Nox</h2><p class="role">Criador da programação de criação de servidores</p><p class="desc">Nox trabalhou na programação responsável pela criação de servidores, ajudando a construir a base para que os usuários possam ter seus próprios espaços e organizar comunidades dentro do Bora Live.</p></article>
+</section>
+
+<div class="box"><h2>💜 Sobre a equipe</h2><p>O Bora Live é resultado da colaboração entre pessoas com funções diferentes. Cada parte do projeto contribui para transformar a ideia inicial em um aplicativo social cada vez mais completo.</p></div>
+<a class="btn" href="../">← Voltar ao Bora</a>
+</main>
+</body>
+</html>
+// Bora Live — payment backend template
+// IMPORTANT: never put MERCADO_PAGO_ACCESS_TOKEN or webhook secrets in frontend code.
+// Configure these values only on the server/environment of the person responsible for payments.
+
+const express = require('express');
+const crypto = require('crypto');
+const { MercadoPagoConfig, Payment } = require('mercadopago');
+require('dotenv').config();
+
+const app = express();
+app.use(express.json({ limit: '100kb' }));
+
+const PORT = process.env.PORT || 3000;
+const ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+const WEBHOOK_SECRET = process.env.MERCADO_PAGO_WEBHOOK_SECRET || '';
+
+// Demo-only in-memory order store. For production, replace with a real database.
+const orders = new Map();
+
+function money(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0 || n > 1000) throw new Error('Invalid amount');
+  return Math.round(n * 100) / 100;
+}
+
+function id() { return crypto.randomUUID(); }
+
+app.post('/api/create-payment', async (req, res) => {
+  try {
+    if (!ACCESS_TOKEN) return res.status(503).json({ error: 'PAYMENTS_NOT_CONFIGURED' });
+
+    const amount = money(req.body.amount);
+    const item = String(req.body.item || '').slice(0, 120);
+    const type = req.body.type === 'box' ? 'box' : 'item';
+    if (!item) return res.status(400).json({ error: 'INVALID_ITEM' });
+
+    const orderId = id();
+    const client = new MercadoPagoConfig({ accessToken: ACCESS_TOKEN });
+    const payment = new Payment(client);
+
+    const result = await payment.create({
+      body: {
+        transaction_amount: amount,
+        description: `Bora Live - ${item}`,
+        payment_method_id: 'pix',
+        external_reference: orderId,
+        notification_url: process.env.PUBLIC_WEBHOOK_URL,
+        payer: { email: req.body.email || 'checkout@boralive.local' }
+      },
+      requestOptions: { idempotencyKey: orderId }
+    });
+
+    const tx = result.point_of_interaction?.transaction_data;
+    orders.set(orderId, { orderId, item, type, amount, paymentId: String(result.id), status: result.status || 'pending', createdAt: Date.now() });
+
+    res.json({
+      orderId,
+      status: result.status,
+      qrCode: tx?.qr_code || null,
+      qrCodeBase64: tx?.qr_code_base64 || null,
+      ticketUrl: tx?.ticket_url || null
+    });
+  } catch (err) {
+    console.error('create-payment:', err.message);
+    res.status(500).json({ error: 'PAYMENT_CREATE_FAILED' });
+  }
+});
+
+app.get('/api/payment-status/:orderId', async (req, res) => {
+  const order = orders.get(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'ORDER_NOT_FOUND' });
+
+  // For production, query the provider or use the webhook-updated status from a database.
+  res.json({ orderId: order.orderId, status: order.status === 'approved' ? 'approved' : 'pending' });
+});
+
+function verifyWebhook(req) {
+  // Keep this function server-side. Implement the provider's current x-signature validation
+  // before trusting webhook data. Never accept a browser request as payment proof.
+  return !WEBHOOK_SECRET || Boolean(req.headers['x-signature']);
+}
+
+app.post('/api/webhooks/mercadopago', async (req, res) => {
+  try {
+    if (!verifyWebhook(req)) return res.status(401).send('invalid signature');
+    // Fetch the payment by ID from Mercado Pago here, verify it is approved,
+    // match external_reference to an order, and only then mark the order approved.
+    const paymentId = req.body?.data?.id || req.body?.id;
+    if (!paymentId) return res.sendStatus(200);
+
+    // TODO production: retrieve payment from Mercado Pago using paymentId and verify:
+    // status === 'approved', transaction_amount matches the order, and external_reference matches.
+    // Then persist the approved state atomically to prevent duplicate item delivery.
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('webhook:', err.message);
+    res.sendStatus(500);
+  }
+});
+
+app.get('/health', (_req, res) => res.json({ ok: true }));
+app.listen(PORT, () => console.log(`Bora Live payment server listening on :${PORT}`));
+
+# Pagamentos do Bora Live
+
+Esta pasta é o backend do checkout Pix. A chave/credencial privada nunca deve ser colocada no HTML ou JavaScript público.
+
+## Fluxo
+1. A loja pede ao backend a criação de uma cobrança.
+2. O backend cria o pagamento Pix no provedor.
+3. A loja recebe apenas os dados de pagamento necessários ao comprador (QR/Pix Copia e Cola).
+4. O provedor envia um webhook ao backend quando o pagamento muda de estado.
+5. O backend valida o pagamento e só então libera o item/caixa.
+
+## Importante
+O arquivo `server.js` é um esqueleto seguro para integração e ainda exige configuração de produção, validação completa da assinatura do webhook e banco de dados persistente antes de receber dinheiro de verdade.
+
+Não coloque credenciais reais em `index.html`, GitHub Pages ou qualquer arquivo público.
+
+{
+  "name": "bora-live-payment-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "mercadopago": "^2.8.0"
+  }
+}
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bora Live — Página não encontrada</title><style>body{font-family:system-ui,sans-serif;background:#06040c;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}.box{max-width:520px}a{display:inline-block;margin-top:18px;padding:12px 18px;border-radius:12px;background:#8b5cf6;color:white;text-decoration:none}</style></head><body><div class="box"><h1>404</h1><p>Essa página do Bora Live não foi encontrada.</p><a href="./">Voltar ao Bora Live</a></div></body></html>
