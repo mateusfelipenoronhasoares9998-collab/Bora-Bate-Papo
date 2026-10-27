@@ -1,0 +1,7 @@
+*~
+.DS_Store
+node_modules/
+.vite/
+coverage/
+.github/workflows/*.yml
+!/.github/workflows/pages.yml
