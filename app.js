@@ -19,40 +19,46 @@ const appState = {
   },
 };
 
-const els = {
-  loginForm: document.getElementById('loginForm'),
-  displayName: document.getElementById('displayName'),
-  email: document.getElementById('email'),
-  userBadge: document.getElementById('userBadge'),
-  roomStatus: document.getElementById('roomStatus'),
-  roomName: document.getElementById('roomName'),
-  joinCode: document.getElementById('joinCode'),
-  createRoomBtn: document.getElementById('createRoomBtn'),
-  joinRoomBtn: document.getElementById('joinRoomBtn'),
-  micBtn: document.getElementById('micBtn'),
-  camBtn: document.getElementById('camBtn'),
-  screenBtn: document.getElementById('screenBtn'),
-  voicePresetBtn: document.getElementById('voicePresetBtn'),
-  chatForm: document.getElementById('chatForm'),
-  messageInput: document.getElementById('messageInput'),
-  chatList: document.getElementById('chatList'),
-  chatCounter: document.getElementById('chatCounter'),
-  connectionLog: document.getElementById('connectionLog'),
-  connectionState: document.getElementById('connectionState'),
-  googleLoginBtn: document.getElementById('googleLoginBtn'),
-  logoutBtn: document.getElementById('logoutBtn'),
-  copyInviteBtn: document.getElementById('copyInviteBtn'),
-  rpgBtn: document.getElementById('rpgBtn'),
-  hpValue: document.getElementById('hpValue'),
-  manaValue: document.getElementById('manaValue'),
-  questValue: document.getElementById('questValue'),
-};
+const ids = [
+  'loginForm',
+  'displayName',
+  'email',
+  'userBadge',
+  'roomStatus',
+  'roomName',
+  'joinCode',
+  'createRoomBtn',
+  'joinRoomBtn',
+  'micBtn',
+  'camBtn',
+  'screenBtn',
+  'voicePresetBtn',
+  'chatForm',
+  'messageInput',
+  'chatList',
+  'chatCounter',
+  'connectionLog',
+  'connectionState',
+  'googleLoginBtn',
+  'logoutBtn',
+  'copyInviteBtn',
+  'rpgBtn',
+  'hpValue',
+  'manaValue',
+  'questValue',
+];
+
+const els = {};
+ids.forEach((id) => {
+  els[id] = document.getElementById(id);
+});
 
 function safeStorageGet() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch (error) {
+    console.warn('[BoraNexus] localStorage indisponível:', error?.message || error);
     return {};
   }
 }
@@ -61,24 +67,26 @@ function safeStorageSet(value) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
   } catch (error) {
-    // ignore; UI continues without persistence
+    console.warn('[BoraNexus] Não foi possível salvar estado local:', error?.message || error);
   }
 }
 
+function sanitizeText(input, limit = MAX_MESSAGE_LENGTH) {
+  return String(input || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, limit);
+}
+
 function logConnection(message) {
+  if (!els.connectionLog) return;
   const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   els.connectionLog.textContent = `[${timestamp}] ${message}`;
 }
 
 function setConnectionState(isOnline) {
+  if (!els.connectionState) return;
   appState.connectionAlive = isOnline;
   els.connectionState.textContent = isOnline ? 'Online' : 'Offline';
   els.connectionState.classList.toggle('online', isOnline);
   els.connectionState.classList.toggle('offline', !isOnline);
-}
-
-function sanitizeText(input, limit = MAX_MESSAGE_LENGTH) {
-  return String(input || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, limit);
 }
 
 function hydrate() {
@@ -87,11 +95,11 @@ function hydrate() {
   appState.room = persisted.room || null;
   appState.messages = Array.isArray(persisted.messages) ? persisted.messages : [];
 
-  if (appState.user) {
+  if (appState.user && els.userBadge) {
     els.userBadge.textContent = appState.user.name;
   }
 
-  if (appState.room) {
+  if (appState.room && els.roomStatus) {
     appState.roomId = appState.room.id;
     els.roomStatus.textContent = `Sala ativa: ${appState.room.name} (${appState.room.id})`;
   }
@@ -100,15 +108,13 @@ function hydrate() {
 }
 
 function persist() {
-  safeStorageSet({
-    user: appState.user,
-    room: appState.room,
-    messages: appState.messages,
-  });
+  safeStorageSet({ user: appState.user, room: appState.room, messages: appState.messages });
 }
 
 function refreshMessages() {
+  if (!els.chatList) return;
   els.chatList.innerHTML = '';
+
   if (!appState.messages.length) {
     const empty = document.createElement('li');
     empty.className = 'chat-item';
@@ -123,7 +129,9 @@ function refreshMessages() {
     });
   }
 
-  els.chatCounter.textContent = `${appState.messages.length} mensagem${appState.messages.length === 1 ? '' : 's'}`;
+  if (els.chatCounter) {
+    els.chatCounter.textContent = `${appState.messages.length} mensagem${appState.messages.length === 1 ? '' : 's'}`;
+  }
 }
 
 function buildInvite() {
@@ -133,16 +141,20 @@ function buildInvite() {
 
 function handleLogin(event) {
   event.preventDefault();
+  if (!els.displayName || !els.email) {
+    logConnection('Formulário de login não disponível.');
+    return;
+  }
+
   const name = sanitizeText(els.displayName.value, 24);
   const email = sanitizeText(els.email.value, 120);
-
   if (!name || !email) {
     logConnection('Informe nome e email para autenticar.');
     return;
   }
 
   appState.user = { name, email };
-  els.userBadge.textContent = name;
+  if (els.userBadge) els.userBadge.textContent = name;
   logConnection(`Usuário ${name} autenticado.`);
   setConnectionState(true);
   persist();
@@ -153,6 +165,11 @@ function handleGoogleLogin() {
 }
 
 function createRoom() {
+  if (!els.roomName || !els.roomStatus) {
+    logConnection('Campos da sala não disponíveis.');
+    return;
+  }
+
   const roomName = sanitizeText(els.roomName.value, 32) || 'Sala do BoraNexus';
   const id = Math.random().toString(36).slice(2, 8).toUpperCase();
   appState.roomId = id;
@@ -164,6 +181,11 @@ function createRoom() {
 }
 
 function joinRoom() {
+  if (!els.joinCode || !els.roomStatus) {
+    logConnection('Código de sala indisponível.');
+    return;
+  }
+
   const roomId = sanitizeText(els.joinCode.value, 12).toUpperCase();
   if (!roomId) {
     logConnection('Informe um código de sala válido.');
@@ -180,10 +202,9 @@ function joinRoom() {
 
 async function requestMedia(constraints, button, label) {
   try {
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('getUserMedia não está disponível neste navegador.');
     }
-
     if (!window.isSecureContext) {
       throw new Error('HTTPS ou localhost é necessário para obter permissão de mídia.');
     }
@@ -193,22 +214,23 @@ async function requestMedia(constraints, button, label) {
       appState.localStream = stream;
       appState.micEnabled = true;
     }
-
     if (constraints.video) {
       appState.camEnabled = true;
     }
 
-    button.classList.add('is-on');
+    if (button) button.classList.add('is-on');
     logConnection(`${label} iniciada com sucesso.`);
     return stream;
   } catch (error) {
     logConnection(`Falha ao acessar ${label}: ${error.message || 'permissão negada.'}`);
-    button.classList.remove('is-on');
+    if (button) button.classList.remove('is-on');
     return null;
   }
 }
 
 async function toggleMicrophone() {
+  if (!els.micBtn) return;
+
   if (appState.micEnabled && appState.localStream) {
     appState.localStream.getAudioTracks().forEach((track) => track.stop());
     appState.localStream = null;
@@ -222,6 +244,8 @@ async function toggleMicrophone() {
 }
 
 async function toggleCamera() {
+  if (!els.camBtn) return;
+
   if (appState.camEnabled && appState.localStream) {
     appState.localStream.getVideoTracks().forEach((track) => track.stop());
     appState.localStream = null;
@@ -235,8 +259,10 @@ async function toggleCamera() {
 }
 
 async function toggleScreenShare() {
+  if (!els.screenBtn) return;
+
   try {
-    if (!navigator.mediaDevices?.getDisplayMedia) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       throw new Error('Compartilhamento de tela não suportado neste navegador.');
     }
 
@@ -275,34 +301,35 @@ function applyVoicePreset() {
 
 function handleMessageSubmit(event) {
   event.preventDefault();
+  if (!els.messageInput) return;
+
   const text = sanitizeText(els.messageInput.value, MAX_MESSAGE_LENGTH);
   if (!text) return;
 
-  const entry = {
-    author: appState.user?.name || 'Você',
-    text,
-  };
-
-  appState.messages.push(entry);
+  appState.messages.push({ author: appState.user?.name || 'Você', text });
   persist();
   refreshMessages();
   els.messageInput.value = '';
   logConnection(`Mensagem enviada para ${appState.room?.name || 'a sala atual'}.`);
 }
 
-function copyInvite() {
+async function copyInvite() {
   const invite = buildInvite();
   if (!navigator.clipboard) {
     logConnection('Clipboard do navegador indisponível no contexto atual.');
     return;
   }
 
-  navigator.clipboard.writeText(invite)
-    .then(() => logConnection(`Convite copiado: ${invite}`))
-    .catch(() => logConnection('Não foi possível copiar o convite.'));
+  try {
+    await navigator.clipboard.writeText(invite);
+    logConnection(`Convite copiado: ${invite}`);
+  } catch (error) {
+    logConnection('Não foi possível copiar o convite.');
+  }
 }
 
 function updateRpgStats() {
+  if (!els.hpValue || !els.manaValue || !els.questValue) return;
   els.hpValue.textContent = String(appState.rpgStats.hp);
   els.manaValue.textContent = String(appState.rpgStats.mana);
   els.questValue.textContent = String(appState.rpgStats.quests);
@@ -314,6 +341,7 @@ function openRpgMission() {
     'Recuperar um artefato perdido no litoral.',
     'Desvendar a rota da guilda no centro da cidade.',
   ];
+
   const mission = missionPool[Math.floor(Math.random() * missionPool.length)];
   appState.rpgStats.hp = Math.max(45, appState.rpgStats.hp - 5);
   appState.rpgStats.mana = Math.min(100, appState.rpgStats.mana + 8);
@@ -327,12 +355,14 @@ function logout() {
   appState.room = null;
   appState.roomId = '';
   appState.messages = [];
-  els.displayName.value = '';
-  els.email.value = '';
-  els.userBadge.textContent = 'Visitante';
-  els.roomStatus.textContent = 'Sem sala ativa.';
-  els.joinCode.value = '';
-  els.roomName.value = '';
+
+  if (els.displayName) els.displayName.value = '';
+  if (els.email) els.email.value = '';
+  if (els.userBadge) els.userBadge.textContent = 'Visitante';
+  if (els.roomStatus) els.roomStatus.textContent = 'Sem sala ativa.';
+  if (els.joinCode) els.joinCode.value = '';
+  if (els.roomName) els.roomName.value = '';
+
   setConnectionState(false);
   persist();
   refreshMessages();
@@ -340,6 +370,18 @@ function logout() {
 }
 
 function bindEvents() {
+  const requiredButtons = [
+    'loginForm', 'googleLoginBtn', 'createRoomBtn', 'joinRoomBtn', 'micBtn',
+    'camBtn', 'screenBtn', 'voicePresetBtn', 'chatForm', 'copyInviteBtn',
+    'rpgBtn', 'logoutBtn',
+  ];
+
+  const missing = requiredButtons.filter((id) => !els[id]);
+  if (missing.length) {
+    console.warn('[BoraNexus] Elementos faltando:', missing);
+    return;
+  }
+
   els.loginForm.addEventListener('submit', handleLogin);
   els.googleLoginBtn.addEventListener('click', handleGoogleLogin);
   els.createRoomBtn.addEventListener('click', createRoom);
@@ -354,8 +396,31 @@ function bindEvents() {
   els.logoutBtn.addEventListener('click', logout);
 }
 
-hydrate();
-bindEvents();
-updateRpgStats();
-setConnectionState(Boolean(appState.user));
-logConnection('Sistema pronto. Aguardando autenticação e sala.');
+function init() {
+  try {
+    hydrate();
+    bindEvents();
+    updateRpgStats();
+    setConnectionState(Boolean(appState.user));
+    logConnection('Sistema pronto. Aguardando autenticação e sala.');
+  } catch (error) {
+    console.error('[BoraNexus] Erro na inicialização:', error);
+    if (document.body) {
+      document.body.innerHTML = `
+        <div style="font-family: Arial, sans-serif; color: #111; background: #fff; padding: 24px;">
+          BoraNexus falhou ao iniciar. Verifique o console do navegador e recarregue a página.
+        </div>
+      `;
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  init();
+}
+
+window.addEventListener('error', (event) => {
+  console.error('[BoraNexus] Erro global:', event.error || event.message);
+});
