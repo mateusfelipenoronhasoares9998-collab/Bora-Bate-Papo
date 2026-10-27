@@ -1,0 +1,14 @@
+{
+  "name": "boranexus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BoraNexus — chat, voz, tela e RPG em uma experiência web segura e responsiva.",
+  "scripts": {
+    "dev": "python3 -m http.server 4173",
+    "start": "python3 -m http.server 4173",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
