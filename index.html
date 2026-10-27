@@ -1,280 +1,235 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
-import { Trophy, Keyboard, RotateCcw, Play } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="bora-version" content="33.1-glow-voice-unified">
+<script id="bora-device-lock-boot">
+(function () {
+  'use strict';
+  const key = 'bora-device-lock-v1';
+  let locked = false, stored = null;
+  try { stored = localStorage.getItem(key); locked = stored !== null; } catch (_) {}
+  function paint(value) {
+    locked = !!value;
+    if (locked) document.documentElement.setAttribute('data-bora-locked', 'true');
+    else document.documentElement.removeAttribute('data-bora-locked');
+  }
+  paint(locked);
+  window.BoraLockBoot = {key, get locked() { return locked; }, set: paint};
+  window.BoraDeviceLock = {get locked() { return locked; }};
+  // Runs before application shortcuts and initial dialogs, including on reload.
+  for (const type of ['click', 'pointerdown', 'keydown', 'submit', 'contextmenu', 'paste', 'copy', 'cut', 'dragstart']) {
+    window.addEventListener(type, event => {
+      if (!locked || event.composedPath().some(n => n?.id === 'boraAppLock')) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+    }, true);
+  }
+  for (const method of ['show', 'showModal']) {
+    const original = window.HTMLDialogElement?.prototype[method];
+    if (original) HTMLDialogElement.prototype[method] = function (...args) {
+      if (locked && this.id !== 'boraAppLock') return;
+      return original.apply(this, args);
+    };
+  }
+  // Redact before the remaining visibility handlers can poll or render a chat.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    try { if (localStorage.getItem(key) !== null) { paint(true); window.BoraDeviceLock.lock?.('background'); } } catch (_) { if (locked) paint(true); }
+  }, true);
+  window.addEventListener('pagehide', () => {
+    try { if (localStorage.getItem(key) !== null) { paint(true); window.BoraDeviceLock.lock?.('background'); } } catch (_) {}
+  }, true);
+})();
 
-const Skate3Simulation = () => {
-  const mountRef = useRef(null);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [currentTrick, setCurrentTrick] = useState('');
-  
-  // Refs para persistência de estado do motor sem re-renderizar o React
-  const engine = useRef({
-    scene: null,
-    camera: null,
-    renderer: null,
-    world: null,
-    skateBody: null,
-    skateMesh: null,
-    keys: {},
-    score: 0
-  });
+</script>
+<script id="bora-compat26">if(!AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>BoraNexus — seu nome, sua turma, seu universo</title>
+<meta name="description" content="Bora é um chat de voz, vídeo e tela para grupos de amigos: crie uma sala, mande o link e converse direto no navegador, com efeitos de voz e compartilhamento de tela.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bora — chat de voz, vídeo e tela entre amigos">
 
-  useEffect(() => {
-    if (!gameStarted) return;
+<meta name="twitter:card" content="summary_large_image">
 
-    // --- CONFIGURAÇÃO DE FÍSICA (CANNON.js) ---
-    const world = new CANNON.World();
-    world.gravity.set(0, -15, 0); // Gravidade ajustada para sensação de peso do Skate 3
-    world.broadphase = new CANNON.NaiveBroadphase();
-    world.solver.iterations = 10;
+<meta property="og:description" content="Crie uma sala, mande o link e converse por voz, vídeo ou tela com os amigos, direto no navegador.">
+<meta property="og:url" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/">
+<meta property="og:image" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/assets/bora-share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="BoraNexus: sua galera, seu universo. Mascote mascarado com ponto de interrogação em neon roxo.">
+<meta name="twitter:image" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/assets/bora-share.png">
+<link rel="canonical" href="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#09090f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BoraNexus">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTciIGZpbGw9IiMxMTEwMTgiLz48cGF0aCBkPSJNMTUgMTdRMzIgOCA0OSAxN0w0NSA0NVEzMiA2MCAxOSA0NVoiIGZpbGw9IiMwODA4MGQiIHN0cm9rZT0iI2FjODdmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMzIiIHk9IjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjM1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj4/PC90ZXh0Pjwvc3ZnPg==">
 
-    // --- CONFIGURAÇÃO GRÁFICA (THREE.js) ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 20, 150);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 4, 8);
+<script>(function(){try{var p=localStorage.getItem("bl-perf")||"auto",w=(navigator.deviceMemory&&navigator.deviceMemory<=2)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=2),r=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches,root=document.documentElement;if(p==="eco"||(p==="auto"&&w))root.className+=" perf-lite";if(r)root.className+=" motion-reduced"}catch(e){}})()</script>
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    mountRef.current.appendChild(renderer.domElement);
 
-    // Iluminação
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    sunLight.position.set(10, 20, 10);
-    sunLight.castShadow = true;
-    sunLight.shadow.camera.left = -50;
-    sunLight.shadow.camera.right = 50;
-    sunLight.shadow.camera.top = 50;
-    sunLight.shadow.camera.bottom = -50;
-    scene.add(sunLight);
 
-    // --- AMBIENTE (Port Carverton Style) ---
-    // Chão de Asfalto
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-    const groundGeo = new THREE.PlaneGeometry(500, 500);
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.receiveShadow = true;
-    scene.add(groundMesh);
 
-    const groundBody = new CANNON.Body({
-      mass: 0,
-      shape: new CANNON.Plane(),
-    });
-    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-    world.addBody(groundBody);
 
-    // Função para criar obstáculos (Rampas e Rails)
-    const createObstacle = (x, y, z, w, h, d, color = 0x777777) => {
-      const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color })
-      );
-      mesh.position.set(x, y, z);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
 
-      const body = new CANNON.Body({
-        mass: 0,
-        shape: new CANNON.Box(new CANNON.Vec3(w / 2, h / 2, d / 2)),
-        position: new CANNON.Vec3(x, y, z)
+
+
+<script id="bora-device-permissions-core">
+(function (root) {
+  'use strict';
+  // All capture entry points use this service. Never cache or manufacture consent.
+  let pending = null;
+  const emit = () => root.dispatchEvent(new CustomEvent('bora-device-state'));
+  function error(name, reason, cause) {
+    const e = new Error(reason); e.name = name; e.boraCapture = true; e.reason = reason;
+    if (cause) e.cause = cause;
+    return e;
+  }
+  function blocked(feature) {
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    try { return !!policy?.allowsFeature && !policy.allowsFeature(feature); } catch (_) { return false; }
+  }
+  function preflight(constraints) {
+    if (!root.isSecureContext) return error('SecurityError', 'insecure');
+    if (!navigator.mediaDevices?.getUserMedia) return error('NotSupportedError', 'unsupported');
+    if (constraints.audio && blocked('microphone') || constraints.video && blocked('camera')) return error('NotAllowedError', 'policy');
+    return null;
+  }
+  function stop(stream) { stream?.getTracks().forEach(track => track.stop()); }
+  function message(e, kind = 'microphone') {
+    const label = kind === 'camera' ? 'a câmera' : kind === 'both' ? 'a câmera e o microfone' : 'o microfone';
+    if (e?.reason === 'insecure') return 'Abra o Bora em um endereço HTTPS. Nesta página sem conexão segura o navegador não pode pedir acesso a ' + label + '.';
+    if (e?.reason === 'policy') return 'Esta prévia ou página incorporada bloqueia ' + label + '. Abra o Bora diretamente no navegador. Se o bloqueio continuar, a hospedagem precisa liberar esse recurso.';
+    if (e?.reason === 'unsupported') return 'Este navegador ou visualizador não oferece acesso a ' + label + '. Abra a versão HTTPS do Bora no Chrome, Edge, Firefox ou Safari atualizado.';
+    if (e?.reason === 'busy') return 'Já existe um pedido de câmera ou microfone aguardando resposta. Responda à janela do navegador antes de tentar novamente.';
+    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError' || e?.name === 'PermissionDeniedError') return 'O acesso a ' + label + ' não foi autorizado. Confira as permissões deste site e do navegador nas configurações do aparelho. Se já bloqueou antes, libere o acesso e toque novamente no botão.';
+    if (e?.name === 'NotFoundError' || e?.name === 'DevicesNotFoundError') return 'Não foi encontrado um dispositivo para usar ' + label + '. Conecte ou habilite o dispositivo e tente novamente.';
+    if (e?.name === 'NotReadableError' || e?.name === 'TrackStartError') return 'Não foi possível iniciar ' + label + '. Feche outros aplicativos que possam estar usando o dispositivo e confira as permissões do sistema.';
+    if (e?.name === 'OverconstrainedError') return 'O dispositivo não aceitou as configurações de captura. Escolha outro dispositivo e tente novamente.';
+    if (e?.name === 'AbortError') return 'O pedido foi interrompido. Você pode tentar novamente quando a janela do navegador terminar.';
+    if (e?.name === 'InvalidStateError') return 'Volte para a aba do Bora, mantenha-a aberta e toque novamente no botão.';
+    return 'Não foi possível iniciar ' + label + '. Confira as permissões abaixo e tente novamente.';
+  }
+  function isCaptureError(e) { return !!e?.boraCapture || ['NotAllowedError','SecurityError','PermissionDeniedError','NotFoundError','DevicesNotFoundError','NotReadableError','TrackStartError','OverconstrainedError','NotSupportedError'].includes(e?.name); }
+  function request(constraints, options = {}) {
+    const problem = preflight(constraints);
+    if (problem) return Promise.reject(problem);
+    if (options.signal?.aborted) return Promise.reject(error('AbortError', 'cancelled'));
+    if (pending) return Promise.reject(error('InvalidStateError', 'busy'));
+    const ticket = {}; pending = ticket; emit();
+    const release = () => { if (pending === ticket) { pending = null; emit(); } };
+    // Invoke the native prompt in the click handler, before any network/permission query.
+    let native;
+    try { native = navigator.mediaDevices.getUserMedia(constraints); }
+    catch (e) { native = Promise.reject(e); }
+    return new Promise((resolve, reject) => {
+      let cancelled = false;
+      const abort = () => { cancelled = true; reject(error('AbortError', 'cancelled')); };
+      options.signal?.addEventListener('abort', abort, { once: true });
+      const acquire = async () => {
+        try { return await native; }
+        catch (e) {
+          // Retry an incompatible device/configuration once; never retry a denial.
+          const exactId = constraints.audio?.deviceId?.exact || constraints.video?.deviceId?.exact;
+          if (!cancelled && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError' && exactId)) {
+            options.onFallback?.();
+            return navigator.mediaDevices.getUserMedia({ audio: !!constraints.audio, video: !!constraints.video });
+          }
+          throw e;
+        }
+      };
+      acquire().then(stream => {
+        release();
+        if (cancelled || options.signal?.aborted) { stop(stream); return; }
+        resolve(stream);
+      }, e => {
+        release();
+        if (!cancelled) reject(error(e.name || 'CaptureError', e.reason || 'capture', e));
+      }).finally(() => {
+        options.signal?.removeEventListener('abort', abort);
+        release();
       });
-      world.addBody(body);
-    };
-
-    // Layout de obstáculos
-    createObstacle(0, 0.5, -10, 6, 1, 4); // Rampa pequena
-    createObstacle(10, 1, -20, 10, 2, 2, 0x999999); // Rail longo
-    createObstacle(-15, 0.5, -15, 4, 1, 10); // Obstáculo lateral
-
-    // --- O SKATE (Player) ---
-    const skateGroup = new THREE.Group();
-    
-    // Deck
-    const deck = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.1, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0xcc3333 })
-    );
-    deck.castShadow = true;
-    skateGroup.add(deck);
-
-    // Rodas
-    const wheelGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.1, 16);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const wheelPos = [[0.25, -0.1, 0.6], [-0.25, -0.1, 0.6], [0.25, -0.1, -0.6], [-0.25, -0.1, -0.6]];
-    wheelPos.forEach(p => {
-      const w = new THREE.Mesh(wheelGeo, wheelMat);
-      w.position.set(...p);
-      w.rotation.z = Math.PI / 2;
-      skateGroup.add(w);
     });
+  }
+  async function permission(name) {
+    if (!root.isSecureContext) return 'insecure';
+    if (blocked(name)) return 'policy';
+    if (!navigator.mediaDevices?.getUserMedia) return 'unsupported';
+    try { return (await navigator.permissions.query({ name })).state; } catch (_) { return 'unknown'; }
+  }
+  function report(e, kind = 'microphone') {
+    if (e?.reason !== 'cancelled') api.open?.(e, kind);
+    return message(e, kind);
+  }
+  const api = { request, stop, message, report, permission, blocked, isCaptureError, get pending() { return !!pending; }, open: null };
+  root.BoraDevices = api;
+})(window);
 
-    scene.add(skateGroup);
+</script>
+<script id="bora-media-core">
+(function(root){'use strict';
+const MAX_VIDEO_BYTES=4*1024*1024,MAX_VIDEO_URL=Math.ceil(MAX_VIDEO_BYTES/3)*4+40;
+function video(value){
+ if(typeof value!=='string'||value.length>MAX_VIDEO_URL)return '';
+ const prefix=value.startsWith('data:video/mp4;base64,')?'data:video/mp4;base64,':value.startsWith('data:video/webm;base64,')?'data:video/webm;base64,':'';if(!prefix)return '';
+ const payload=value.slice(prefix.length);if(payload.length<16||payload.length%4||!/^[A-Za-z0-9+/]+={0,2}$/.test(payload))return '';
+ const padding=payload.endsWith('==')?2:payload.endsWith('=')?1:0;if(payload.length/4*3-padding>MAX_VIDEO_BYTES)return '';
+ try{const bytes=atob(payload.slice(0,16));if(prefix.includes('/mp4;')){if(bytes.slice(4,8)!=='ftyp')return '';}else if([...bytes.slice(0,4)].map(c=>c.charCodeAt(0)).join(',')!=='26,69,223,163')return '';}catch{return '';}
+ return value;
+}
+function fileKind(file){if(!file||!Number.isFinite(file.size)||file.size<=0)return '';const mime=String(file.type||'').toLowerCase(),name=String(file.name||'');if(mime==='video/mp4'||!mime&&/\.mp4$/i.test(name))return 'video/mp4';if(mime==='video/webm'||!mime&&/\.webm$/i.test(name))return 'video/webm';if(/^image\//.test(mime)&&mime!=='image/svg+xml')return mime;return '';}
+function imageSize(width,height){const scale=Math.min(1,1000/Math.max(width,height));return {width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};}
+const api=Object.freeze({MAX_VIDEO_BYTES,MAX_VIDEO_URL,video,fileKind,imageSize});root.BoraMediaCore=api;if(typeof module==='object'&&module.exports)module.exports=api;
+})(globalThis);
 
-    const skateBody = new CANNON.Body({
-      mass: 1,
-      shape: new CANNON.Box(new CANNON.Vec3(0.3, 0.05, 0.9)),
-      position: new CANNON.Vec3(0, 2, 0),
-      angularDamping: 0.4,
-      linearDamping: 0.1
-    });
-    world.addBody(skateBody);
-
-    // Salvar referências
-    engine.current = {
-      scene, camera, renderer, world, skateBody, skateMesh: skateGroup,
-      keys: {}, score: 0
-    };
-
-    // Eventos de Teclado
-    const handleKeyDown = (e) => engine.current.keys[e.code] = true;
-    const handleKeyUp = (e) => engine.current.keys[e.code] = false;
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    // Loop de Animação
-    const animate = () => {
-      requestAnimationFrame(animate);
-      
-      const { world, skateBody, skateMesh, keys } = engine.current;
-
-      // Lógica de Movimento (Push)
-      const force = 12;
-      if (keys['KeyW']) skateBody.applyForce(new CANNON.Vec3(0, 0, -force), skateBody.position);
-      if (keys['KeyS']) skateBody.applyForce(new CANNON.Vec3(0, 0, force), skateBody.position);
-      if (keys['KeyA']) skateBody.applyForce(new CANNON.Vec3(-force, 0, 0), skateBody.position);
-      if (keys['KeyD']) skateBody.applyForce(new CANNON.Vec3(force, 0, 0), skateBody.position);
-
-      // Ollie (Pulo)
-      if (keys['Space'] && Math.abs(skateBody.velocity.y) < 0.1) {
-        skateBody.velocity.y = 8;
-        setCurrentTrick('OLLIE!');
-        setScore(s => s + 100);
-      }
-
-      // Manobras (Flick-it simulation)
-      if (Math.abs(skateBody.velocity.y) > 0.5) {
-        if (keys['KeyQ']) {
-          skateBody.angularVelocity.z = 12;
-          if (Math.random() < 0.05) {
-            setCurrentTrick('KICKFLIP');
-            setScore(s => s + 500);
-          }
-        }
-        if (keys['KeyE']) {
-          skateBody.angularVelocity.x = 12;
-          if (Math.random() < 0.05) {
-            setCurrentTrick('SHOVE-IT');
-            setScore(s => s + 500);
-          }
-        }
-      }
-
-      // Reset
-      if (keys['KeyR']) {
-        skateBody.position.set(0, 2, 0);
-        skateBody.velocity.set(0, 0, 0);
-        skateBody.angularVelocity.set(0, 0, 0);
-        skateBody.quaternion.set(0, 0, 0, 1);
-      }
-
-      world.step(1/60);
-
-      // Sincronização Física -> Visual
-      skateMesh.position.copy(skateBody.position);
-      skateMesh.quaternion.copy(skateBody.quaternion);
-
-      // Câmera Suave (Third Person)
-      const targetPos = new THREE.Vector3(
-        skateBody.position.x,
-        skateBody.position.y + 4,
-        skateBody.position.z + 8
-      );
-      camera.position.lerp(targetPos, 0.1);
-      camera.lookAt(skateMesh.position);
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      if (mountRef.current) mountRef.current.removeChild(renderer.domElement);
-    };
-  }, [gameStarted]);
-
-  return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000', overflow: 'hidden' }}>
-      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-
-      {/* UI Overlay - Estilo Skate 3 */}
-      {!gameStarted ? (
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
-          justifyContent: 'center', alignItems: 'center', background: 'radial-gradient(circle, #222, #000)',
-          color: 'white', zIndex: 10, textAlign: 'center'
-        }}>
-          <h1 style={{ fontSize: '80px', fontStyle: 'italic', fontWeight: '900', margin: 0, transform: 'skewX(-10deg)', textShadow: '5px 5px 0 #fcd116' }}>
-            SKATE <span style={{ color: '#fcd116' }}>3</span>
-          </h1>
-          <p style={{ color: '#aaa', fontStyle: 'italic', marginBottom: '30px' }}>Web Physics Engine Edition</p>
-          <button 
-            onClick={() => setGameStarted(true)}
-            style={{
-              background: '#fcd116', color: '#000', border: 'none', padding: '20px 50px', 
-              fontSize: '24px', fontWeight: '900', cursor: 'pointer', transform: 'skewX(-10deg)',
-              transition: '0.2s', borderRadius: '4px'
-            }}
-            onMouseEnter={(e) => e.target.style.background = 'white'}
-            onMouseLeave={(e) => e.target.style.background = '#fcd116'}
-          >
-            START SESSION
-          </button>
-        </div>
-      ) : (
-        <>
-          <div style={{
-            position: 'absolute', top: '30px', left: '30px', background: 'rgba(0,0,0,0.8)', 
-            padding: '15px 25px', borderLeft: '8px solid #fcd116', transform: 'skewX(-10deg)', color: 'white'
-          }}>
-            <div style={{ fontSize: '12px', color: '#fcd116', textTransform: 'uppercase' }}>Score</div>
-            <div style={{ fontSize: '40px', fontWeight: '900', fontStyle: 'italic' }}>{score}</div>
-          </div>
-
-          <div style={{
-            position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%) skewX(-10deg)',
-            fontSize: '70px', fontWeight: '900', fontStyle: 'italic', color: '#fcd116',
-            textShadow: '4px 4px 0 #000', opacity: currentTrick ? 1 : 0, transition: '0.2s', textAlign: 'center'
-          }}>
-            {currentTrick}
-          </div>
-
-          <div style={{
-            position: 'absolute', bottom: '30px', right: '30px', background: 'rgba(0,0,0,0.8)', 
-            padding: '20px', borderBottom: '5px solid #fcd116', transform: 'skewX(-10deg)', 
-            color: 'white', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '5px'
-          }}>
-            <div style={{ color: '#fcd116', fontWeight: 'bold', marginBottom: '5px' }}>CONTROLES:</div>
-            <div><span style={{ background: '#444', padding: '2px 5px', borderRadius: '3px' }}>W,A,S,D</span> Mover</div>
-            <div><span style={{ background: '#444', padding: '2px 5px', borderRadius: '3px' }}>Espaço</span> Ollie</div>
-            <div><span style={{ background: '#444', padding: '2px 5px', borderRadius: '3px' }}>Q / E</span> Flip / Shove-it</div>
-            <div><span style={{ background: '#444', padding: '2px 5px', borderRadius: '3px' }}>R</span> Resetar</div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-export default Skate3Simulation;
+</script>
+<script id="bora-save-core">(function(root){'use strict';
+const MAX=3*1024*1024,classes=['guardian','archer','arcanist','ranger'];
+const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+function tree(v,depth=0){
+ if(depth>16)throw Error('O backup tem uma estrutura inválida.');
+ if(typeof v==='number'){if(!Number.isFinite(v))throw Error('Há um número inválido no progresso.');return v;}
+ if(v===null||typeof v==='boolean')return v;
+ if(typeof v==='string'){if(v.length>10000)throw Error('Há um campo grande demais no progresso.');return v;}
+ if(Array.isArray(v)){if(v.length>3000)throw Error('Há uma lista grande demais no progresso.');return v.map(x=>tree(x,depth+1));}
+ if(!plain(v))throw Error('O backup contém um campo incompatível.');
+ const out={};if(Object.keys(v).length>500)throw Error('Há campos demais no progresso.');
+ for(const k of Object.keys(v)){if(['__proto__','constructor','prototype'].includes(k)||k.length>100)throw Error('O backup contém um campo proibido.');out[k]=tree(v[k],depth+1);}return out;
+}
+function validate(value){
+ const s=tree(value);if(!plain(s)||s.version!==23||!classes.includes(s.classId)||typeof s.name!=='string'||!s.name.trim()||s.name.length>18||!Array.isArray(s.items)||s.items.length>500||!plain(s.player))throw Error('Este não é um progresso compatível do Brasil Oculto.');
+ const p=s.player;if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>6720||p.y<0||p.y>4800||!Number.isFinite(p.life)||p.life<=0||p.life>100000||!Number.isFinite(p.mana)||p.mana<0||p.mana>100000)throw Error('A posição ou os atributos do personagem são inválidos.');
+ const playerKeys=['x','y','life','mana','armorDurability','armorMaxDurability','manaLock','wardBroken'];if(Object.keys(p).some(k=>!playerKeys.includes(k)))throw Error('O personagem tem atributos incompatíveis.');for(const k of ['armorDurability','armorMaxDurability','manaLock'])if(p[k]!==undefined&&(!Number.isFinite(p[k])||p[k]<0||p[k]>10000))throw Error('A proteção do personagem é inválida.');if(p.wardBroken!==undefined&&typeof p.wardBroken!=='boolean')throw Error('O estado da proteção é inválido.');
+ for(const it of s.items)if(!plain(it)||typeof it.id!=='string'||!/^[-a-zA-Z0-9_:]{1,100}$/.test(it.id)||typeof it.name!=='string'||it.name.length>150||(it.count!==undefined&&(!Number.isFinite(it.count)||it.count<0||it.count>1000000)))throw Error('A mochila contém um item inválido.');
+ for(const [key,limit]of [['enemies',2000],['chests',1000],['visited',200],['encounters',500]])if(s[key]!==undefined&&(!Array.isArray(s[key])||s[key].length>limit))throw Error('O progresso contém uma lista inválida.');
+ for(const e of s.enemies||[])if(!plain(e)||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.hp)||e.x<0||e.x>6720||e.y<0||e.y>4800)throw Error('Um inimigo salvo é inválido.');
+ for(const k of ['quests','gathered','livingWorld','customization','progression','gear','equipped'])if(s[k]!==undefined&&!plain(s[k]))throw Error('Um campo do progresso está danificado.');
+ if(s.seed!==undefined&&(!Number.isInteger(s.seed)||s.seed<0||s.seed>4294967295))throw Error('O cenário salvo é inválido.');
+ if(s.livingWorld){for(const k of ['contracts','baskets','jobs'])if(s.livingWorld[k]!==undefined&&!plain(s.livingWorld[k]))throw Error('O estado das aldeias é inválido.');if(s.livingWorld.homeVisits!==undefined&&!Array.isArray(s.livingWorld.homeVisits))throw Error('A lista de casas é inválida.');for(const q of Object.values(s.livingWorld.contracts||{}))if(!plain(q)||!Array.isArray(q.clues))throw Error('Uma caçada está danificada.');}
+ return s;
+}
+function parse(text){if(typeof text!=='string'||text.length>MAX)throw Error('Use um backup de até 3 MB.');let raw;try{raw=JSON.parse(text);}catch{throw Error('O arquivo não é um JSON válido.');}if(raw?.format==='BrasilOcultoBackup'){if(raw.version!==1)throw Error('Versão de backup incompatível.');raw=raw.progress;}return validate(raw);}
+root.BoraSaveCore=Object.freeze({MAX,validate,parse});
+})(globalThis);
+</script>
+<script id="bora-plus-core">
+(function(w){'use strict';
+const text=(v,n=1000)=>typeof v==='string'?v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').slice(0,n):'';
+const plain=o=>!!o&&typeof o==='object'&&!Array.isArray(o),safe=s=>typeof s==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(s)&&!['__proto__','prototype','constructor'].includes(s);
+const identity=(m,id)=>m&&/^[A-Z0-9]{4,8}$/.test(m.uid||'')?'uid:'+m.uid:'peer:'+text(id,100);
+function media(v){if(typeof v!=='string')return '';if(/^data:image\/(gif|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)&&v.length<=280000)return v;try{const u=new URL(v);return u.protocol==='https:'&&v.length<1500&&(/\.(gif|webp|png|jpe?g)$/i.test(u.pathname)||/(^|\.)(giphy\.com|tenor\.com)$/.test(u.hostname))?u.href:'';}catch{return '';}}
+function channels(raw){const defaults=[{id:'geral',name:'Geral',type:'text'},{id:'jogos',name:'Jogos',type:'text'},{id:'memes',name:'Memes',type:'text'},{id:'musica',name:'Música',type:'text'},{id:'voz-geral',name:'Voz geral',type:'voice'}],out=[];
+ for(const c of Array.isArray(raw)?raw:defaults){if(!plain(c)||!safe(c.id)||!/^[a-z0-9_-]{1,40}$/.test(c.id)||!['text','voice'].includes(c.type)||!text(c.name,24).trim()||out.some(x=>x.id===c.id)||out.filter(x=>x.type===c.type).length>=(c.type==='text'?20:10))continue;const group=c.type==='voice'?'voice':['chat','news','media'].includes(c.group)?c.group:/avisos?|regras?|an[uú]ncios?|boas.vindas/i.test(c.name)?'news':/m[ií]dia|clipes?|fotos?|v[ií]deos?/i.test(c.name)?'media':'chat';out.push({id:c.id,name:text(c.name,24).trim(),type:c.type,group});}
+ const fixed=defaults.map(c=>({...c,group:c.type==='voice'?'voice':'chat'})),ids=new Set(fixed.map(c=>c.id));return [...fixed.filter(c=>c.type==='text'),...out.filter(c=>c.type==='text'&&!ids.has(c.id)).slice(0,16),fixed.find(c=>c.type==='voice'),...out.filter(c=>c.type==='voice'&&!ids.has(c.id)).slice(0,9)];
+}
+function winner(b){for(const p of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[p[0]]&&p.every(i=>b[i]===b[p[0]]))return b[p[0]];return b.every(Boolean)?'tie':'';}
+function move(game,who,index){if(!game||game.type!=='ttt'||game.result||!Number.isInteger(index)||index<0||index>8||game.board[index]||game.players[game.turn]?.key!==who)return false;game.board[index]=game.turn;game.result=winner(game.board);game.turn=game.turn==='X'?'O':'X';return true;}
+function remaining(timer,now){return Math.max(0,Math.ceil((timer?.status==='running'?timer.end-now:timer?.remaining||0)/1000));}
+function game(raw){if(!plain(raw)||!['ttt','hangman','quiz'].includes(raw.type))return null;const g={type:raw.type,by:text(raw.by,110),creator:text(raw.creator,20),result:text(raw.result,200),at:Number(raw.at)||0};
+ if(g.type==='ttt'){if(!Array.isArray(raw.board)||raw.board.length!==9||raw.board.some(x=>!['','X','O'].includes(x))||!plain(raw.players)||!plain(raw.players.X))return null;g.board=raw.board.slice();g.turn=raw.turn==='O'?'O':'X';g.players={X:{key:text(raw.players.X.key,110),nick:text(raw.players.X.nick,20)},O:plain(raw.players.O)?{key:text(raw.players.O.key,110),nick:text(raw.players.O.nick,20)}:null};}
+ if(g.type==='hangman'){if(!Array.isArray(raw.mask)||raw.mask.length>24||raw.mask.some(x=>!/^[_A-Z]$/.test(x))||!Array.isArray(raw.guesses))return null;g.mask=raw.mask.slice();g.guesses=raw.guesses.filter(x=>/^[A-Z]$/.test(x)).slice(0,26);g.erro
