@@ -1,254 +1,237 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="bora-version" content="33.5-pages-stable">
-<script id="bora-startup-recovery-v34">
-(function(){
- 'use strict';
- let lastError='',panel=null;
- function record(e){const msg=e?.reason?.message||e?.message||e?.error?.message||'';if(msg)lastError=String(msg).slice(0,180);}
- window.addEventListener('error',record);
- window.addEventListener('unhandledrejection',record);
- function addButton(root,label,action){const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='border:1px solid #9571c7;border-radius:12px;background:#462969;color:white;padding:13px 15px;font-weight:700;cursor:pointer';b.addEventListener('click',action);root.append(b);}
- function visible(e){if(!e||e.hidden||e.closest('[hidden]'))return false;let n=e;while(n&&n.nodeType===1){const c=getComputedStyle(n);if(c.display==='none'||c.visibility==='hidden'||Number(c.opacity)===0)return false;n=n.parentElement;}const b=e.getBoundingClientRect();return b.width>80&&b.height>90;}
- function recover(reason){
-  if(panel)return;
-  const locked=document.documentElement.hasAttribute('data-bora-locked');
-  if(locked){
-   let d=document.getElementById('boraAppLock');
-   if(d){if(!d.open)try{d.showModal();}catch(_){};return;}
-   d=document.createElement('dialog');d.id='boraAppLock';d.style.cssText='position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;max-width:100%;max-height:100%;margin:0;border:0;background:#130c1f;color:white;z-index:2147483647;padding:30px;';
-   const text=document.createElement('p');text.textContent='O bloqueio do Bora está ativo, mas a tela de senha não carregou. Atualize a página para tentar novamente.';d.append(text);addButton(d,'Recarregar',()=>location.reload());document.body.append(d);try{d.showModal();}catch(_){};return;
-  }
-  panel=document.createElement('section');panel.id='boraStartupRecovery';panel.setAttribute('role','alert');panel.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#100a18;color:#f7eaff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;text-align:center;padding:30px;font-family:system-ui,Arial,sans-serif';
-  const h=document.createElement('h1');h.textContent='BoraNexus não carregou';h.style.cssText='font-size:25px;margin:0';
-  const p=document.createElement('p');p.textContent='A interface não ficou visível. Suas conversas e configurações locais não foram apagadas.';p.style.cssText='max-width:450px;line-height:1.5';panel.append(h,p);
-  const controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;justify-content:center;gap:12px';
-  addButton(controls,'Recarregar',()=>location.reload());
-  addButton(controls,'Abrir em modo leve',()=>{try{localStorage.setItem('bl-perf','eco');}catch(_){}location.reload();});panel.append(controls);
-  if(lastError){const detail=document.createElement('details');const s=document.createElement('summary');s.textContent='Detalhes técnicos';const err=document.createElement('p');err.textContent=lastError;detail.append(s,err);panel.append(detail);}
-  document.body.append(panel);
- }
- function check(){
-  if(!document.body)return;
-  if(document.documentElement.hasAttribute('data-bora-locked')){recover('lock');return;}
-  if(['#welcome','#app','#halloweenIntro'].some(s=>visible(document.querySelector(s))))return;
-  recover('no-visible-app');
- }
- window.BoraStartupRecovery=Object.freeze({check});
- const boot=()=>setTimeout(check,11000);
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
-<script id="bora-device-lock-boot">
-(function () {
-  'use strict';
-  const key = 'bora-device-lock-v1';
-  let locked = false, stored = null;
-  try { stored = localStorage.getItem(key); locked = stored !== null; } catch (_) {}
-  function paint(value) {
-    locked = !!value;
-    if (locked) document.documentElement.setAttribute('data-bora-locked', 'true');
-    else document.documentElement.removeAttribute('data-bora-locked');
-  }
-  paint(locked);
-  window.BoraLockBoot = {key, get locked() { return locked; }, set: paint};
-  window.BoraDeviceLock = {get locked() { return locked; }};
-  // Runs before application shortcuts and initial dialogs, including on reload.
-  for (const type of ['click', 'pointerdown', 'keydown', 'submit', 'contextmenu', 'paste', 'copy', 'cut', 'dragstart']) {
-    window.addEventListener(type, event => {
-      if (!locked || event.composedPath().some(n => n?.id === 'boraAppLock')) return;
-      event.preventDefault(); event.stopImmediatePropagation();
-    }, true);
-  }
-  for (const method of ['show', 'showModal']) {
-    const original = window.HTMLDialogElement?.prototype[method];
-    if (original) HTMLDialogElement.prototype[method] = function (...args) {
-      if (locked && this.id !== 'boraAppLock') return;
-      return original.apply(this, args);
-    };
-  }
-  // Redact before the remaining visibility handlers can poll or render a chat.
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) return;
-    try { if (localStorage.getItem(key) !== null) { paint(true); window.BoraDeviceLock.lock?.('background'); } } catch (_) { if (locked) paint(true); }
-  }, true);
-  window.addEventListener('pagehide', () => {
-    try { if (localStorage.getItem(key) !== null) { paint(true); window.BoraDeviceLock.lock?.('background'); } } catch (_) {}
-  }, true);
-})();
-
-</script>
-<script id="bora-compat26">if(typeof AbortSignal!=='undefined'&&!AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<title>BoraNexus — seu nome, sua turma, seu universo</title>
-<meta name="description" content="Bora é um chat de voz, vídeo e tela para grupos de amigos: crie uma sala, mande o link e converse direto no navegador, com efeitos de voz e compartilhamento de tela.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Bora — chat de voz, vídeo e tela entre amigos">
-
-<meta name="twitter:card" content="summary_large_image">
-
-<meta property="og:description" content="Crie uma sala, mande o link e converse por voz, vídeo ou tela com os amigos, direto no navegador.">
-<meta property="og:url" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/">
-<meta property="og:image" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/assets/bora-share.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="BoraNexus: sua galera, seu universo. Mascote mascarado com ponto de interrogação em neon roxo.">
-<meta name="twitter:image" content="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/assets/bora-share.png">
-<link rel="canonical" href="https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Bate-Papo/">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#09090f">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BoraNexus">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTciIGZpbGw9IiMxMTEwMTgiLz48cGF0aCBkPSJNMTUgMTdRMzIgOCA0OSAxN0w0NSA0NVEzMiA2MCAxOSA0NVoiIGZpbGw9IiMwODA4MGQiIHN0cm9rZT0iI2FjODdmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMzIiIHk9IjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjM1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj4/PC90ZXh0Pjwvc3ZnPg==">
-
-
-<script>(function(){try{var p=localStorage.getItem("bl-perf")||"auto",w=(navigator.deviceMemory&&navigator.deviceMemory<=2)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=2),r=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches,root=document.documentElement;if(p==="eco"||(p==="auto"&&w))root.className+=" perf-lite";if(r)root.className+=" motion-reduced"}catch(e){}})()</script>
-
-
-
-
-
-
-
-
-
-<script id="bora-device-permissions-core">
-(function (root) {
-  'use strict';
-  // All capture entry points use this service. Never cache or manufacture consent.
-  let pending = null;
-  const emit = () => root.dispatchEvent(new CustomEvent('bora-device-state'));
-  function error(name, reason, cause) {
-    const e = new Error(reason); e.name = name; e.boraCapture = true; e.reason = reason;
-    if (cause) e.cause = cause;
-    return e;
-  }
-  function blocked(feature) {
-    const policy = document.permissionsPolicy || document.featurePolicy;
-    try { return !!policy?.allowsFeature && !policy.allowsFeature(feature); } catch (_) { return false; }
-  }
-  function preflight(constraints) {
-    if (!root.isSecureContext) return error('SecurityError', 'insecure');
-    if (!navigator.mediaDevices?.getUserMedia) return error('NotSupportedError', 'unsupported');
-    if (constraints.audio && blocked('microphone') || constraints.video && blocked('camera')) return error('NotAllowedError', 'policy');
-    return null;
-  }
-  function stop(stream) { stream?.getTracks().forEach(track => track.stop()); }
-  function message(e, kind = 'microphone') {
-    const label = kind === 'camera' ? 'a câmera' : kind === 'both' ? 'a câmera e o microfone' : 'o microfone';
-    if (e?.reason === 'insecure') return 'Abra o Bora em um endereço HTTPS. Nesta página sem conexão segura o navegador não pode pedir acesso a ' + label + '.';
-    if (e?.reason === 'policy') return 'Esta prévia ou página incorporada bloqueia ' + label + '. Abra o Bora diretamente no navegador. Se o bloqueio continuar, a hospedagem precisa liberar esse recurso.';
-    if (e?.reason === 'unsupported') return 'Este navegador ou visualizador não oferece acesso a ' + label + '. Abra a versão HTTPS do Bora no Chrome, Edge, Firefox ou Safari atualizado.';
-    if (e?.reason === 'busy') return 'Já existe um pedido de câmera ou microfone aguardando resposta. Responda à janela do navegador antes de tentar novamente.';
-    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError' || e?.name === 'PermissionDeniedError') return 'O acesso a ' + label + ' não foi autorizado. Confira as permissões deste site e do navegador nas configurações do aparelho. Se já bloqueou antes, libere o acesso e toque novamente no botão.';
-    if (e?.name === 'NotFoundError' || e?.name === 'DevicesNotFoundError') return 'Não foi encontrado um dispositivo para usar ' + label + '. Conecte ou habilite o dispositivo e tente novamente.';
-    if (e?.name === 'NotReadableError' || e?.name === 'TrackStartError') return 'Não foi possível iniciar ' + label + '. Feche outros aplicativos que possam estar usando o dispositivo e confira as permissões do sistema.';
-    if (e?.name === 'OverconstrainedError') return 'O dispositivo não aceitou as configurações de captura. Escolha outro dispositivo e tente novamente.';
-    if (e?.name === 'AbortError') return 'O pedido foi interrompido. Você pode tentar novamente quando a janela do navegador terminar.';
-    if (e?.name === 'InvalidStateError') return 'Volte para a aba do Bora, mantenha-a aberta e toque novamente no botão.';
-    return 'Não foi possível iniciar ' + label + '. Confira as permissões abaixo e tente novamente.';
-  }
-  function isCaptureError(e) { return !!e?.boraCapture || ['NotAllowedError','SecurityError','PermissionDeniedError','NotFoundError','DevicesNotFoundError','NotReadableError','TrackStartError','OverconstrainedError','NotSupportedError'].includes(e?.name); }
-  function request(constraints, options = {}) {
-    const problem = preflight(constraints);
-    if (problem) return Promise.reject(problem);
-    if (options.signal?.aborted) return Promise.reject(error('AbortError', 'cancelled'));
-    if (pending) return Promise.reject(error('InvalidStateError', 'busy'));
-    const ticket = {}; pending = ticket; emit();
-    const release = () => { if (pending === ticket) { pending = null; emit(); } };
-    // Invoke the native prompt in the click handler, before any network/permission query.
-    let native;
-    try { native = navigator.mediaDevices.getUserMedia(constraints); }
-    catch (e) { native = Promise.reject(e); }
-    return new Promise((resolve, reject) => {
-      let cancelled = false;
-      const abort = () => { cancelled = true; reject(error('AbortError', 'cancelled')); };
-      options.signal?.addEventListener('abort', abort, { once: true });
-      const acquire = async () => {
-        try { return await native; }
-        catch (e) {
-          // Retry an incompatible device/configuration once; never retry a denial.
-          const exactId = constraints.audio?.deviceId?.exact || constraints.video?.deviceId?.exact;
-          if (!cancelled && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError' && exactId)) {
-            options.onFallback?.();
-            return navigator.mediaDevices.getUserMedia({ audio: !!constraints.audio, video: !!constraints.video });
-          }
-          throw e;
-        }
-      };
-      acquire().then(stream => {
-        release();
-        if (cancelled || options.signal?.aborted) { stop(stream); return; }
-        resolve(stream);
-      }, e => {
-        release();
-        if (!cancelled) reject(error(e.name || 'CaptureError', e.reason || 'capture', e));
-      }).finally(() => {
-        options.signal?.removeEventListener('abort', abort);
-        release();
-      });
-    });
-  }
-  async function permission(name) {
-    if (!root.isSecureContext) return 'insecure';
-    if (blocked(name)) return 'policy';
-    if (!navigator.mediaDevices?.getUserMedia) return 'unsupported';
-    try { return (await navigator.permissions.query({ name })).state; } catch (_) { return 'unknown'; }
-  }
-  function report(e, kind = 'microphone') {
-    if (e?.reason !== 'cancelled') api.open?.(e, kind);
-    return message(e, kind);
-  }
-  const api = { request, stop, message, report, permission, blocked, isCaptureError, get pending() { return !!pending; }, open: null };
-  root.BoraDevices = api;
-})(window);
-
-</script>
-<script id="bora-media-core">
-(function(root){'use strict';
-const MAX_VIDEO_BYTES=4*1024*1024,MAX_VIDEO_URL=Math.ceil(MAX_VIDEO_BYTES/3)*4+40;
-function video(value){
- if(typeof value!=='string'||value.length>MAX_VIDEO_URL)return '';
- const prefix=value.startsWith('data:video/mp4;base64,')?'data:video/mp4;base64,':value.startsWith('data:video/webm;base64,')?'data:video/webm;base64,':'';if(!prefix)return '';
- const payload=value.slice(prefix.length);if(payload.length<16||payload.length%4||!/^[A-Za-z0-9+/]+={0,2}$/.test(payload))return '';
- const padding=payload.endsWith('==')?2:payload.endsWith('=')?1:0;if(payload.length/4*3-padding>MAX_VIDEO_BYTES)return '';
- try{const bytes=atob(payload.slice(0,16));if(prefix.includes('/mp4;')){if(bytes.slice(4,8)!=='ftyp')return '';}else if([...bytes.slice(0,4)].map(c=>c.charCodeAt(0)).join(',')!=='26,69,223,163')return '';}catch{return '';}
- return value;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101126">
+<meta name="description" content="BoraNexus: salas, mensagens e aventuras.">
+<title>BoraNexus</title>
+<link rel="stylesheet" href="./styles.css?v=20261027-fix">
+<style>
+body{margin:0;background:#0e1121;color:#edf2ff;font:16px system-ui,Arial,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.page-shell{max-width:1200px;width:calc(100% - 24px);margin:20px auto 50px}
+.app-layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:20px;margin-top:20px}
+.glow-panel{background:#171c33;border:1px solid #3a355e;border-radius:22px}
+.panel{padding:20px;min-width:0}
+.topbar{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand-wrap,.topbar-actions,.action-row,.chat-form{display:flex;align-items:center;gap:12px}
+.brand-mark{display:grid;place-items:center;background:#6544bd;border-radius:13px;width:48px;height:48px;font-size:28px}
+h1{margin:0;font-size:29px}
+h2{font-size:21px}
+p{line-height:1.5}
+.eyebrow{font-size:12px;letter-spacing:2px;color:#b9a7ff}
+.stack{display:grid;gap:14px;margin-top:14px}
+label{display:grid;gap:6px}
+label span,.helper-text{color:#c2caed}
+input{box-sizing:border-box;width:100%;min-width:0;padding:12px;border:1px solid #514d78;border-radius:12px;background:#101429;color:#fff}
+button{min-height:42px;padding:9px 14px;border:1px solid #544f83;border-radius:12px;background:#282c52;color:white;font-weight:650}
+button.primary-button{background:#7250cd}
+button:disabled{opacity:.55;cursor:not-allowed}
+.action-row,.chat-form{margin-top:12px}
+.action-row input,.chat-form input{flex:1}
+.wire-grid,.two-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.controls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+.card{background:#12172a;border:1px solid #343858;border-radius:16px;padding:16px;min-width:0}
+.card h3{margin-top:0}
+.chat-list{list-style:none;padding:0;max-height:280px;overflow:auto}
+.chat-item{background:#212643;border-radius:11px;margin:7px 0;padding:10px;overflow-wrap:anywhere}
+.chat-item strong,.chat-item span{display:block}
+.stat-row{display:flex;justify-content:space-between;margin:10px 0}
+.pill,.user-badge,.status-badge{display:inline-block;padding:7px 10px;border-radius:30px;background:#30345a;color:#e4dbff}
+.log-box,.status-strip{background:#13182c;border:1px solid #343858;padding:14px;border-radius:12px;margin-top:16px}
+.helper-text{font-size:13px}
+.wide{width:100%}
+.divider{text-align:center;margin:16px 0}
+.control-button.is-on{border-color:#43ae83;background:#174c40}
+@media(max-width:830px){
+.app-layout,.wire-grid,.two-columns{grid-template-columns:1fr}
+.controls-grid{grid-template-columns:repeat(2,1fr)}
+.action-row,.chat-form{flex-wrap:wrap}
+.topbar-actions{flex-wrap:wrap}
 }
-function fileKind(file){if(!file||!Number.isFinite(file.size)||file.size<=0)return '';const mime=String(file.type||'').toLowerCase(),name=String(file.name||'');if(mime==='video/mp4'||!mime&&/\.mp4$/i.test(name))return 'video/mp4';if(mime==='video/webm'||!mime&&/\.webm$/i.test(name))return 'video/webm';if(/^image\//.test(mime)&&mime!=='image/svg+xml')return mime;return '';}
-function imageSize(width,height){const scale=Math.min(1,1000/Math.max(width,height));return {width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};}
-const api=Object.freeze({MAX_VIDEO_BYTES,MAX_VIDEO_URL,video,fileKind,imageSize});root.BoraMediaCore=api;if(typeof module==='object'&&module.exports)module.exports=api;
-})(globalThis);
+</style>
+</head>
+<body>
 
+<main class="page-shell" id="boranexus-root">
+<header class="topbar glow-panel">
+<div class="brand-wrap">
+<div class="brand-mark" aria-hidden="true">✦</div>
+<div>
+<p class="eyebrow">CONVERSE • JOGUE • CONECTE</p>
+<h1>BoraNexus</h1>
+</div>
+</div>
+<div class="topbar-actions">
+<span id="connectionState" class="status-badge offline">Offline</span>
+<span id="userBadge" class="user-badge">Visitante</span>
+</div>
+</header>
+
+<div class="app-layout">
+<aside class="sidebar panel glow-panel">
+<h2>Sua conta</h2>
+<p class="helper-text">Este acesso usa um perfil local neste navegador.</p>
+<form id="loginForm" class="stack">
+<label>
+<span>Seu nome</span>
+<input id="displayName" maxlength="24" autocomplete="nickname" placeholder="Como quer ser chamado?" required>
+</label>
+<label>
+<span>E-mail</span>
+<input id="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required>
+</label>
+<button type="submit" class="primary-button wide">Entrar no Bora</button>
+</form>
+
+<div class="divider">Conta</div>
+<button id="googleLoginBtn" class="secondary-button wide" type="button" disabled>
+Google (ainda não disponível)
+</button>
+<p class="helper-text">O login Google precisa de autenticação segura no servidor.</p>
+<button id="logoutBtn" class="ghost-button wide" type="button">
+Sair da conta local
+</button>
+
+<div class="divider">Salas</div>
+<div class="stack">
+<label>
+<span>Nome da sala</span>
+<input id="roomName" maxlength="32" placeholder="Sala dos amigos">
+</label>
+<button id="createRoomBtn" class="primary-button" type="button">
+Criar sala
+</button>
+<label>
+<span>Código da sala</span>
+<input id="joinCode" maxlength="12" placeholder="ABC123" autocapitalize="characters">
+</label>
+<button id="joinRoomBtn" class="secondary-button" type="button">
+Entrar com código
+</button>
+</div>
+</aside>
+
+<section class="content panel glow-panel" aria-label="Painel principal">
+<div class="panel-header">
+<div>
+<span class="pill">Bora Chat</span>
+<h2>Seu espaço para conversar</h2>
+</div>
+</div>
+
+<p id="roomStatus" class="status-strip">Sem sala ativa.</p>
+
+<div class="wire-grid">
+<div class="card">
+<h3>Convite da sala</h3>
+<p>Copie o código e compartilhe com seus amigos.</p>
+<button id="copyInviteBtn" class="secondary-button wide" type="button">
+Copiar código
+</button>
+</div>
+<div class="card">
+<h3>Permissões</h3>
+<p>Use microfone e câmera pelo HTTPS e permita o acesso no navegador.</p>
+</div>
+</div>
+
+<div class="controls-grid">
+<button id="micBtn" class="control-button" type="button">🎙 Microfone</button>
+<button id="camBtn" class="control-button" type="button">📷 Câmera</button>
+<button id="screenBtn" class="control-button" type="button">🖥 Tela</button>
+<button id="voicePresetBtn" class="control-button" type="button">🎚 Voz (demo)</button>
+</div>
+
+<div class="two-columns">
+<section class="card chat-card">
+<div class="section-title-row">
+<h3>Mensagens</h3>
+<small id="chatCounter">0 mensagens</small>
+</div>
+<ul id="chatList" class="chat-list">
+<li class="chat-item">Preparando mensagens…</li>
+</ul>
+<form id="chatForm" class="chat-form">
+<input id="messageInput" placeholder="Escreva uma mensagem" aria-label="Mensagem" maxlength="280" required>
+<button class="primary-button mini" type="submit">Enviar</button>
+</form>
+</section>
+
+<section class="card">
+<span class="pill">Brasil Oculto</span>
+<h3>Missões do RPG</h3>
+<div class="rpg-panel">
+<div class="stat-row"><span>Vida</span><strong id="hpValue">100</strong></div>
+<div class="stat-row"><span>Mana</span><strong id="manaValue">64</strong></div>
+<div class="stat-row"><span>Missões</span><strong id="questValue">3</strong></div>
+</div>
+<button id="rpgBtn" class="primary-button wide" type="button">
+Gerar missão de teste
+</button>
+<p class="helper-text">Este painel é demonstrativo. O RPG completo está na versão original.</p>
+</section>
+</div>
+
+<section class="card slim-card">
+<h3>Diagnóstico do aplicativo</h3>
+<p class="helper-text">Se algum recurso falhar, uma mensagem aparecerá abaixo.</p>
+<div id="connectionLog" class="log-box" role="status" aria-live="polite">
+Carregando app.js…
+</div>
+</section>
+</section>
+</div>
+</main>
+
+<script>
+window.addEventListener('error',function(e){
+const log=document.getElementById('connectionLog');
+if(log&&e.message){
+log.textContent='Erro de JavaScript: '+String(e.message).slice(0,180);
+}
+});
+window.addEventListener('unhandledrejection',function(e){
+const log=document.getElementById('connectionLog');
+if(log){
+log.textContent='Erro ao carregar recurso: '+
+String(e.reason?.message||e.reason||'desconhecido').slice(0,180);
+}
+});
+document.addEventListener('DOMContentLoaded',function(){
+const params=new URLSearchParams(location.search);
+const code=params.get('room');
+if(code&&/^[A-Z0-9]{4,12}$/i.test(code)){
+document.getElementById('joinCode').value=code.toUpperCase();
+}
+document.getElementById('copyInviteBtn').addEventListener('click',async function(e){
+e.stopImmediatePropagation();
+const status=document.getElementById('roomStatus').textContent;
+const match=status.match(/\(([A-Z0-9]{4,12})\)/i);
+const log=document.getElementById('connectionLog');
+if(!match){
+log.textContent='Crie uma sala antes de copiar o código.';
+return;
+}
+const inviteCode=match[1];
+try{
+await navigator.clipboard.writeText(inviteCode);
+log.textContent='Código copiado: '+inviteCode;
+}catch(_){
+log.textContent='Código da sala: '+inviteCode+'. Copie manualmente.';
+}
+},true);
+setTimeout(function(){
+const log=document.getElementById('connectionLog');
+if(log.textContent.includes('Carregando app.js')){
+log.textContent='Aviso: app.js não inicializou. Confira se ele está na mesma pasta do index.html.';
+}
+},2200);
+});
 </script>
-<script id="bora-save-core">(function(root){'use strict';
-const MAX=3*1024*1024,classes=['guardian','archer','arcanist','ranger'];
-const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-function tree(v,depth=0){
- if(depth>16)throw Error('O backup tem uma estrutura inválida.');
- if(typeof v==='number'){if(!Number.isFinite(v))throw Error('Há um número inválido no progresso.');return v;}
- if(v===null||typeof v==='boolean')return v;
- if(typeof v==='string'){if(v.length>10000)throw Error('Há um campo grande demais no progresso.');return v;}
- if(Array.isArray(v)){if(v.length>3000)throw Error('Há uma lista grande demais no progresso.');return v.map(x=>tree(x,depth+1));}
- if(!plain(v))throw Error('O backup contém um campo incompatível.');
- const out={};if(Object.keys(v).length>500)throw Error('Há campos demais no progresso.');
- for(const k of Object.keys(v)){if(['__proto__','constructor','prototype'].includes(k)||k.length>100)throw Error('O backup contém um campo proibido.');out[k]=tree(v[k],depth+1);}return out;
-}
-function validate(value){
- const s=tree(value);if(!plain(s)||s.version!==23||!classes.includes(s.classId)||typeof s.name!=='string'||!s.name.trim()||s.name.length>18||!Array.isArray(s.items)||s.items.length>500||!plain(s.player))throw Error('Este não é um progresso compatível do Brasil Oculto.');
- const p=s.player;if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>6720||p.y<0||p.y>4800||!Number.isFinite(p.life)||p.life<=0||p.life>100000||!Number.isFinite(p.mana)||p.mana<0||p.mana>100000)throw Error('A posição ou os atributos do personagem são inválidos.');
- const playerKeys=['x','y','life','mana','armorDurability','armorMaxDurability','manaLock','wardBroken'];if(Object.keys(p).some(k=>!playerKeys.includes(k)))throw Error('O personagem tem atributos incompatíveis.');for(const k of ['armorDurability','armorMaxDurability','manaLock'])if(p[k]!==undefined&&(!Number.isFinite(p[k])||p[k]<0||p[k]>10000))throw Error('A proteção do personagem é inválida.');if(p.wardBroken!==undefined&&typeof p.wardBroken!=='boolean')throw Error('O estado da proteção é inválido.');
- for(const it of s.items)if(!plain(it)||typeof it.id!=='string'||!/^[-a-zA-Z0-9_:]{1,100}$/.test(it.id)||typeof it.name!=='string'||it.name.length>150||(it.count!==undefined&&(!Number.isFinite(it.count)||it.count<0||it.count>1000000)))throw Error('A mochila contém um item inválido.');
- for(const [key,limit]of [['enemies',2000],['chests',1000],['visited',200],['encounters',500]])if(s[key]!==undefined&&(!Array.isArray(s[key])||s[key].length>limit))throw Error('O progresso contém uma lista inválida.');
- for(const e of s.enemies||[])if(!plain(e)||!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.hp)||e.x<0||e.x>6720||e.y<0||e.y>4800)throw Error('Um inimigo salvo é inválido.');
- for(const k of ['quests','gathered','livingWorld','customization','progression','gear','equipped'])if(s[k]!==undefined&&!plain(s[k]))throw Error('Um campo do progresso está danificado.');
- if(s.seed!==undefined&&(!Number.isInteger(s.seed)||s.seed<0||s.seed>4294967295))throw Error('O cenário salvo é inválido.');
- if(s.livingWorld){for(const k of ['contracts','baskets','jobs'])if(s.livingWorld[k]!==undefined&&!plain(s.livingWorld[k]))throw Error('O estado das aldeias é inválido.');if(s.livingWorld.homeVisits!==undefined&&!Array.isArray(s.livingWorld.homeVisits))throw Error('A lista de casas é inválida.');for(const q of Object.values(s.livingWorld.contracts||{}))if(!plain(q)||!Array.isArray(q.clues))throw Error('Uma caçada está danificada.');}
- return s;
-}
-function parse(text){if(typeof text!=='string'||text.length>MAX)throw Error('Use um backup de até 3 MB.');let raw;try{raw=JSON.parse(text);}catch{throw Error('O arquivo não é um JSON válido.');}if(raw?.format==='BrasilOcultoBackup'){if(raw.ve
+<script src="./app.js?v=20261027-fix" defer onerror="document.getElementById('connectionLog').textContent='Erro: app.js não encontrado. Confira se está na pasta principal do GitHub.'"></script>
+</body>
+</html>
