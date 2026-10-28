@@ -2,7 +2,45 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="bora-version" content="33.1-glow-voice-unified">
+<meta name="bora-version" content="33.5-pages-stable">
+<script id="bora-startup-recovery-v34">
+(function(){
+ 'use strict';
+ let lastError='',panel=null;
+ function record(e){const msg=e?.reason?.message||e?.message||e?.error?.message||'';if(msg)lastError=String(msg).slice(0,180);}
+ window.addEventListener('error',record);
+ window.addEventListener('unhandledrejection',record);
+ function addButton(root,label,action){const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='border:1px solid #9571c7;border-radius:12px;background:#462969;color:white;padding:13px 15px;font-weight:700;cursor:pointer';b.addEventListener('click',action);root.append(b);}
+ function visible(e){if(!e||e.hidden||e.closest('[hidden]'))return false;let n=e;while(n&&n.nodeType===1){const c=getComputedStyle(n);if(c.display==='none'||c.visibility==='hidden'||Number(c.opacity)===0)return false;n=n.parentElement;}const b=e.getBoundingClientRect();return b.width>80&&b.height>90;}
+ function recover(reason){
+  if(panel)return;
+  const locked=document.documentElement.hasAttribute('data-bora-locked');
+  if(locked){
+   let d=document.getElementById('boraAppLock');
+   if(d){if(!d.open)try{d.showModal();}catch(_){};return;}
+   d=document.createElement('dialog');d.id='boraAppLock';d.style.cssText='position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;max-width:100%;max-height:100%;margin:0;border:0;background:#130c1f;color:white;z-index:2147483647;padding:30px;';
+   const text=document.createElement('p');text.textContent='O bloqueio do Bora está ativo, mas a tela de senha não carregou. Atualize a página para tentar novamente.';d.append(text);addButton(d,'Recarregar',()=>location.reload());document.body.append(d);try{d.showModal();}catch(_){};return;
+  }
+  panel=document.createElement('section');panel.id='boraStartupRecovery';panel.setAttribute('role','alert');panel.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#100a18;color:#f7eaff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;text-align:center;padding:30px;font-family:system-ui,Arial,sans-serif';
+  const h=document.createElement('h1');h.textContent='BoraNexus não carregou';h.style.cssText='font-size:25px;margin:0';
+  const p=document.createElement('p');p.textContent='A interface não ficou visível. Suas conversas e configurações locais não foram apagadas.';p.style.cssText='max-width:450px;line-height:1.5';panel.append(h,p);
+  const controls=document.createElement('div');controls.style.cssText='display:flex;flex-wrap:wrap;justify-content:center;gap:12px';
+  addButton(controls,'Recarregar',()=>location.reload());
+  addButton(controls,'Abrir em modo leve',()=>{try{localStorage.setItem('bl-perf','eco');}catch(_){}location.reload();});panel.append(controls);
+  if(lastError){const detail=document.createElement('details');const s=document.createElement('summary');s.textContent='Detalhes técnicos';const err=document.createElement('p');err.textContent=lastError;detail.append(s,err);panel.append(detail);}
+  document.body.append(panel);
+ }
+ function check(){
+  if(!document.body)return;
+  if(document.documentElement.hasAttribute('data-bora-locked')){recover('lock');return;}
+  if(['#welcome','#app','#halloweenIntro'].some(s=>visible(document.querySelector(s))))return;
+  recover('no-visible-app');
+ }
+ window.BoraStartupRecovery=Object.freeze({check});
+ const boot=()=>setTimeout(check,11000);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 <script id="bora-device-lock-boot">
 (function () {
   'use strict';
@@ -42,7 +80,7 @@
 })();
 
 </script>
-<script id="bora-compat26">if(!AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
+<script id="bora-compat26">if(typeof AbortSignal!=='undefined'&&!AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>BoraNexus — seu nome, sua turma, seu universo</title>
 <meta name="description" content="Bora é um chat de voz, vídeo e tela para grupos de amigos: crie uma sala, mande o link e converse direto no navegador, com efeitos de voz e compartilhamento de tela.">
@@ -213,23 +251,4 @@ function validate(value){
  if(s.livingWorld){for(const k of ['contracts','baskets','jobs'])if(s.livingWorld[k]!==undefined&&!plain(s.livingWorld[k]))throw Error('O estado das aldeias é inválido.');if(s.livingWorld.homeVisits!==undefined&&!Array.isArray(s.livingWorld.homeVisits))throw Error('A lista de casas é inválida.');for(const q of Object.values(s.livingWorld.contracts||{}))if(!plain(q)||!Array.isArray(q.clues))throw Error('Uma caçada está danificada.');}
  return s;
 }
-function parse(text){if(typeof text!=='string'||text.length>MAX)throw Error('Use um backup de até 3 MB.');let raw;try{raw=JSON.parse(text);}catch{throw Error('O arquivo não é um JSON válido.');}if(raw?.format==='BrasilOcultoBackup'){if(raw.version!==1)throw Error('Versão de backup incompatível.');raw=raw.progress;}return validate(raw);}
-root.BoraSaveCore=Object.freeze({MAX,validate,parse});
-})(globalThis);
-</script>
-<script id="bora-plus-core">
-(function(w){'use strict';
-const text=(v,n=1000)=>typeof v==='string'?v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').slice(0,n):'';
-const plain=o=>!!o&&typeof o==='object'&&!Array.isArray(o),safe=s=>typeof s==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(s)&&!['__proto__','prototype','constructor'].includes(s);
-const identity=(m,id)=>m&&/^[A-Z0-9]{4,8}$/.test(m.uid||'')?'uid:'+m.uid:'peer:'+text(id,100);
-function media(v){if(typeof v!=='string')return '';if(/^data:image\/(gif|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)&&v.length<=280000)return v;try{const u=new URL(v);return u.protocol==='https:'&&v.length<1500&&(/\.(gif|webp|png|jpe?g)$/i.test(u.pathname)||/(^|\.)(giphy\.com|tenor\.com)$/.test(u.hostname))?u.href:'';}catch{return '';}}
-function channels(raw){const defaults=[{id:'geral',name:'Geral',type:'text'},{id:'jogos',name:'Jogos',type:'text'},{id:'memes',name:'Memes',type:'text'},{id:'musica',name:'Música',type:'text'},{id:'voz-geral',name:'Voz geral',type:'voice'}],out=[];
- for(const c of Array.isArray(raw)?raw:defaults){if(!plain(c)||!safe(c.id)||!/^[a-z0-9_-]{1,40}$/.test(c.id)||!['text','voice'].includes(c.type)||!text(c.name,24).trim()||out.some(x=>x.id===c.id)||out.filter(x=>x.type===c.type).length>=(c.type==='text'?20:10))continue;const group=c.type==='voice'?'voice':['chat','news','media'].includes(c.group)?c.group:/avisos?|regras?|an[uú]ncios?|boas.vindas/i.test(c.name)?'news':/m[ií]dia|clipes?|fotos?|v[ií]deos?/i.test(c.name)?'media':'chat';out.push({id:c.id,name:text(c.name,24).trim(),type:c.type,group});}
- const fixed=defaults.map(c=>({...c,group:c.type==='voice'?'voice':'chat'})),ids=new Set(fixed.map(c=>c.id));return [...fixed.filter(c=>c.type==='text'),...out.filter(c=>c.type==='text'&&!ids.has(c.id)).slice(0,16),fixed.find(c=>c.type==='voice'),...out.filter(c=>c.type==='voice'&&!ids.has(c.id)).slice(0,9)];
-}
-function winner(b){for(const p of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[p[0]]&&p.every(i=>b[i]===b[p[0]]))return b[p[0]];return b.every(Boolean)?'tie':'';}
-function move(game,who,index){if(!game||game.type!=='ttt'||game.result||!Number.isInteger(index)||index<0||index>8||game.board[index]||game.players[game.turn]?.key!==who)return false;game.board[index]=game.turn;game.result=winner(game.board);game.turn=game.turn==='X'?'O':'X';return true;}
-function remaining(timer,now){return Math.max(0,Math.ceil((timer?.status==='running'?timer.end-now:timer?.remaining||0)/1000));}
-function game(raw){if(!plain(raw)||!['ttt','hangman','quiz'].includes(raw.type))return null;const g={type:raw.type,by:text(raw.by,110),creator:text(raw.creator,20),result:text(raw.result,200),at:Number(raw.at)||0};
- if(g.type==='ttt'){if(!Array.isArray(raw.board)||raw.board.length!==9||raw.board.some(x=>!['','X','O'].includes(x))||!plain(raw.players)||!plain(raw.players.X))return null;g.board=raw.board.slice();g.turn=raw.turn==='O'?'O':'X';g.players={X:{key:text(raw.players.X.key,110),nick:text(raw.players.X.nick,20)},O:plain(raw.players.O)?{key:text(raw.players.O.key,110),nick:text(raw.players.O.nick,20)}:null};}
- if(g.type==='hangman'){if(!Array.isArray(raw.mask)||raw.mask.length>24||raw.mask.some(x=>!/^[_A-Z]$/.test(x))||!Array.isArray(raw.guesses))return null;g.mask=raw.mask.slice();g.guesses=raw.guesses.filter(x=>/^[A-Z]$/.test(x)).slice(0,26);g.erro
+function parse(text){if(typeof text!=='string'||text.length>MAX)throw Error('Use um backup de até 3 MB.');let raw;try{raw=JSON.parse(text);}catch{throw Error('O arquivo não é um JSON válido.');}if(raw?.format==='BrasilOcultoBackup'){if(raw.ve
