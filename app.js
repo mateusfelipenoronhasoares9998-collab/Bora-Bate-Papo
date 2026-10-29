@@ -160,9 +160,45 @@ function handleLogin(event) {
   persist();
 }
 
-function handleGoogleLogin() {
-  logConnection('Fluxo de Google deve ser validado em backend seguro com OAuth2 e token server-side.');
+
+async function handleGoogleLogin() {
+  try {
+    if (!window.BoraAuth) {
+      throw new Error('Firebase ainda não foi carregado.');
+    }
+
+    logConnection('Conectando ao Google...');
+
+    const result = await window.BoraAuth.loginGoogle();
+    const user = result.user;
+
+    const name = user.displayName || 'Usuário Google';
+    const email = user.email || '';
+
+    appState.user = {
+      name,
+      email,
+      uid: user.uid
+    };
+
+    if (els.userBadge) {
+      els.userBadge.textContent = name;
+    }
+
+    setConnectionState(true);
+    persist();
+
+    logConnection('Login Google realizado com sucesso!');
+  } catch (error) {
+    console.error('Erro no login Google:', error);
+
+    logConnection(
+      'Erro no login Google: ' +
+      (error.code || error.message || 'Tente novamente.')
+    );
+  }
 }
+
 
 function createRoom() {
   if (!els.roomName || !els.roomStatus) {
