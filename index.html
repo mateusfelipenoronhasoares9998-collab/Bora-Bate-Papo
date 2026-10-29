@@ -4475,50 +4475,91 @@ $("vsound").onclick=function(){$("soundPanel").hidden=!$("soundPanel").hidden;po
 
 
 
-<script>(function(){'use strict';
-const get=id=>document.getElementById(id),button=get('googleLogin'),status=get('googleStatus');
-let configured=false,busy=false,loading=null,sdkPromise=null,clientId='',nonce='',csrf='',user=null,checked=false,expiresAt=0;
-function note(value){if(status)status.textContent=value;for(const el of document.querySelectorAll('[data-google-status]'))el.textContent=value;}
-function dispatch(){window.dispatchEvent(new CustomEvent('bora-google-session',{detail:{user}}));}
-async function request(path,method='GET',data){
- if(!/^https?:$/.test(location.protocol))throw Error('Abra o Bora publicado para entrar com Google. Você pode usar um apelido agora.');
- const headers={'Accept':'application/json'};if(data!==undefined)headers['Content-Type']='application/json';if(method!=='GET'&&csrf)headers['X-Bora-CSRF']=csrf;
- const r=await fetch('/api/nexus'+path,{method,credentials:'same-origin',cache:'no-store',headers,body:data===undefined?undefined:JSON.stringify(data),signal:AbortSignal.timeout(12000)});
- const result=await r.json().catch(()=>({}));if(!r.ok)throw Error(r.status===503||r.status===404?'O Google ainda não foi ativado neste endereço. Continue com seu apelido.':result.error||'Não consegui entrar com Google agora.');if(result.csrfToken)csrf=result.csrfToken;return result;
+<script id="bora-google-firebase-bridge">
+(function(){
+'use strict';
+const get=id=>document.getElementById(id);
+const button=get('googleLogin');
+let busy=false,user=null;
+const dialog=document.createElement('dialog');
+dialog.id='boraGoogleDialog';
+dialog.className='bp-dialog b26-google-dialog';
+dialog.setAttribute('aria-labelledby','b26GoogleTitle');
+dialog.innerHTML='<header class="bp-dialog-head"><div><h2 id="b26GoogleTitle">Sua conta. Seu Bora.</h2><p>Entre com Google ou continue com seu apelido.</p></div><button type="button" class="bp-btn" data-google-close aria-label="Fechar login">×</button></header><div class="bp-body"><p data-google-status role="status" aria-live="polite"></p><button type="button" class="bp-btn" data-google-retry>Entrar com Google</button><button type="button" class="bp-btn" data-google-close data-google-guest>Continuar com apelido</button></div>';
+document.body.append(dialog);
+function note(message){
+ if(get('googleStatus'))get('googleStatus').textContent=message;
+ dialog.querySelectorAll('[data-google-status]').forEach(el=>el.textContent=message);
+ document.querySelectorAll('#b26GoogleGate [data-google-status]').forEach(el=>el.textContent=message);
 }
 function paint(){
- if(button){button.hidden=false;button.disabled=busy;button.textContent=user?'Conta Google conectada':'Entrar com Google';}
- for(const b of document.querySelectorAll('[data-google-open],[data-google-retry]'))b.disabled=busy;
- for(const slot of document.querySelectorAll('[data-google-button]')){
-  slot.hidden=!configured||!!user;if(configured&&!user&&window.google?.accounts?.id&&!slot.firstChild)google.accounts.id.renderButton(slot,{type:'standard',theme:'outline',size:'large',text:'signin_with',shape:'pill',width:280,locale:'pt_BR'});
+ if(button){button.disabled=busy;button.textContent=user?'Conta Google conectada':'Entrar com Google';}
+ dialog.querySelector('[data-google-retry]').disabled=busy;
+ document.querySelectorAll('[data-google-open]').forEach(el=>el.disabled=busy);
+}
+function dispatch(){window.dispatchEvent(new CustomEvent('bora-google-session',{detail:{user}}));}
+function errorMessage(error){
+ const code=error?.code||'';
+ if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request')return 'A janela do Google foi fechada. Tente novamente.';
+ if(code==='auth/popup-blocked')return 'O navegador bloqueou a janela do Google. Permita pop-ups e tente novamente.';
+ if(code==='auth/unauthorized-domain')return 'Este endereço precisa ser autorizado no Firebase Authentication.';
+ if(code==='auth/operation-not-allowed')return 'Ative o provedor Google no Firebase Authentication.';
+ if(code==='auth/network-request-failed')return 'Falha de conexão. Confira sua internet e tente novamente.';
+ return 'Não foi possível entrar com Google. '+(code||error?.message||'Tente novamente.');
+}
+async function login(){
+ if(busy)return;
+ busy=true;paint();note('Abrindo o login do Google…');
+ try{
+  if(!window.BoraAuth)throw Error('Firebase não carregou. Confira firebase-auth.js no GitHub.');
+  const result=await window.BoraAuth.loginGoogle();
+  const fbUser=result?.user;
+  if(!fbUser?.uid)throw Error('O Google não retornou uma conta válida.');
+  const name=String(fbUser.displayName||fbUser.email?.split('@')[0]||'Amigo').trim().slice(0,20);
+  user={id:fbUser.uid,uid:fbUser.uid,name,email:fbUser.email||'',photo:fbUser.photoURL||''};
+  if(get('nick'))get('nick').value=name;
+  if(get('brNickname'))get('brNickname').value=name;
+  try{localStorage.setItem('bl-nick',name);}catch(_){}
+  try{if(typeof nick!=='undefined')nick=name;}catch(_){}
+  try{if(typeof renderMe==='function')renderMe();}catch(_){}
+  note('Conectado como '+name+'.');
+  dispatch();
+  if(dialog.open)dialog.close();
+  window.BP?.toast?.('Bem-vindo, '+name+'.');
+ }catch(error){console.error('BoraNexus: falha no login Google',error);note(errorMessage(error));}
+ finally{busy=false;paint();}
+}
+function open(){if(!dialog.open)dialog.showModal();if(!window.BoraAuth)note('Preparando conexão com o Google…');else note('Toque em Entrar com Google para escolher sua conta.');}
+dialog.querySelectorAll('[data-google-close]').forEach(el=>el.onclick=()=>{
+ dialog.close();
+ if(el.hasAttribute('data-google-guest')&&!user){
+  window.BoraNexus?.guest?.();
+  if(get('app')?.hidden)window.BoraHome27?.select?.('chat');
+  get('nick')?.focus({preventScroll:true});
  }
-}
-async function received(response){
- if(busy)return;if(typeof response?.credential!=='string'||!response.credential||response.credential.length>16000){note('A conta não foi confirmada. Use o botão do Google para tentar novamente.');return;}busy=true;paint();note('Confirmando sua conta com segurança…');
- try{const result=await request('/auth/google','POST',{credential:response.credential,nonce});if(!result.user||typeof result.user.id!=='string')throw Error('O servidor não confirmou a conta.');user=result.user;
-  const n=String(user.name||'Amigo').trim().slice(0,20);if(get('nick'))get('nick').value=n;if(get('brNickname'))get('brNickname').value=n;nick=n;ls('bl-nick',n);renderMe();
-  await window.BoraNexus?.refresh?.();await window.BoraCommunity?.refresh?.();note('Você entrou como '+n+'. Sua senha do Google não é compartilhada com o Bora.');dispatch();if(dialog.open)dialog.close();window.BP?.toast('Bem-vindo, '+n+'.');
- }catch(e){const message=e.name==='TimeoutError'?'A conexão demorou. Tente novamente.':e.message;await prepare(true).catch(()=>{});note(message);}finally{busy=false;paint();}
-}
-function sdk(){if(window.google?.accounts?.id)return Promise.resolve();if(sdkPromise)return sdkPromise;sdkPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.id='boraGoogleSdk';let settled=false;const timer=setTimeout(()=>done(Error('O Google demorou para carregar. Confira sua internet e tente novamente.')),10000);function done(error){if(settled)return;settled=true;clearTimeout(timer);script.onload=script.onerror=null;if(error){script.remove();sdkPromise=null;reject(error);}else resolve();}script.src='https://accounts.google.com/gsi/client?hl=pt-BR';script.async=true;script.onload=()=>done(window.google?.accounts?.id?null:Error('O Google não carregou. Tente novamente.'));script.onerror=()=>done(Error('Não consegui carregar o Google. Confira sua internet.'));document.head.append(script);});return sdkPromise;}
-async function prepare(force=false){
- if(loading)return loading;if(checked&&!force&&(user||Date.now()<expiresAt))return configured;
- loading=(async()=>{try{await window.BoraNexus?.refresh?.();const result=await request('/auth/google/options');checked=true;user=result.user||null;configured=result.available===true&&/^[-a-zA-Z0-9_.]+\.apps\.googleusercontent\.com$/.test(result.clientId||'');
-  if(!configured){note('Login Google aguardando ativação pelo responsável do Bora. Você pode continuar com um apelido.');return false;}
-  if(result.origin&&result.origin!==location.origin)throw Error('O endereço de login precisa ser ajustado pelo responsável do Bora. Você pode continuar com apelido.');
-  clientId=result.clientId;nonce=result.nonce;expiresAt=Date.now()+Math.min(540,Number(result.expiresIn)||540)*1000;if(!user){if(typeof nonce!=='string'||!/^[\w-]{43}$/.test(nonce)||!csrf)throw Error('Atualize a página para preparar uma nova tentativa de login.');await sdk();google.accounts.id.initialize({client_id:clientId,callback:received,nonce,auto_select:false,context:'signin',ux_mode:'popup'});for(const slot of document.querySelectorAll('[data-google-button]'))slot.replaceChildren();}
-  note(user?'Sua conta Google está conectada.':'Escolha sua conta no botão oficial do Google.');dispatch();return true;
- }catch(e){checked=true;configured=false;expiresAt=0;note(e.name==='TimeoutError'?'A conexão demorou. Confira a internet e tente novamente.':e.message||'Não consegui preparar o login agora.');return false;}finally{loading=null;paint();}})();return loading;
-}
-const dialog=document.createElement('dialog');dialog.id='boraGoogleDialog';dialog.className='bp-dialog b26-google-dialog';dialog.setAttribute('aria-labelledby','b26GoogleTitle');dialog.innerHTML='<header class="bp-dialog-head"><div><h2 id="b26GoogleTitle">Sua conta. Seu Bora.</h2><p>Entre com Google ou continue com seu apelido.</p></div><button type="button" class="bp-btn" data-google-close aria-label="Fechar login">×</button></header><div class="bp-body"><div data-google-button></div><p data-google-status role="status" aria-live="polite"></p><details class="b27-login-help"><summary>O Google não abriu?</summary><p>Permita pop-ups para este endereço e confira a conexão. Fechar a janela do Google cancela a tentativa; basta usar o botão de novo. Nenhuma senha Google é digitada no Bora.</p></details><button type="button" class="bp-btn" data-google-retry>Tentar novamente</button><button type="button" class="bp-btn" data-google-close data-google-guest>Continuar com apelido</button></div>';document.body.append(dialog);
-dialog.querySelectorAll('[data-google-close]').forEach(b=>b.onclick=()=>{dialog.close();if(b.hasAttribute('data-google-guest')&&!user){window.BoraNexus?.guest();if(get('app').hidden)window.BoraHome27?.select('chat');get('nick')?.focus({preventScroll:true});}});dialog.querySelector('[data-google-retry]').onclick=()=>prepare(true);dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
-function open(){if(!dialog.open)dialog.showModal();prepare();}
+});
+dialog.querySelector('[data-google-retry]').onclick=login;
+dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
 if(button)button.onclick=open;
-window.BoraGoogle={open,refresh:()=>prepare(true),get user(){return user;},get configured(){return configured;}};
-function attach(){const card=document.querySelector('#nexusGate .nx-card');if(card&&!get('b26GoogleGate')){const box=document.createElement('div');box.id='b26GoogleGate';box.className='b26-google-gate';box.innerHTML='<button type="button" class="nx-secondary" data-google-open>Entrar com Google</button><p data-google-status role="status"></p>';box.querySelector('button').onclick=open;card.insertBefore(box,card.querySelector('.nx-tabs'));const guest=document.createElement('button');guest.type='button';guest.className='nx-secondary b26-guest';guest.textContent='Continuar com apelido';guest.onclick=()=>{window.BoraNexus?.guest();get('nick').focus();};box.append(guest);}
- prepare();}
+window.BoraGoogle={open,refresh:()=>Promise.resolve(!!window.BoraAuth),get user(){return user;},get configured(){return !!window.BoraAuth;}};
+function attach(){
+ const card=document.querySelector('#nexusGate .nx-card');
+ if(card&&!get('b26GoogleGate')){
+  const box=document.createElement('div');
+  box.id='b26GoogleGate';box.className='b26-google-gate';
+  box.innerHTML='<button type="button" class="nx-secondary" data-google-open>Entrar com Google</button><p data-google-status role="status"></p>';
+  box.querySelector('button').onclick=open;
+  card.insertBefore(box,card.querySelector('.nx-tabs'));
+  const guest=document.createElement('button');
+  guest.type='button';guest.className='nx-secondary b26-guest';guest.textContent='Continuar com apelido';
+  guest.onclick=()=>{window.BoraNexus?.guest?.();get('nick')?.focus();};
+  box.append(guest);
+ }
+ paint();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach,{once:true});else attach();
-window.addEventListener('bora-nexus-session',()=>{if(window.BoraNexus?.user)user=window.BoraNexus.user;else{if(user)window.google?.accounts?.id?.disableAutoSelect?.();user=null;expiresAt=0;}paint();dispatch();});
+window.addEventListener('bora-auth-ready',()=>{if(dialog.open)note('Google pronto. Toque em Entrar com Google.');paint();});
+window.addEventListener('bora-nexus-session',()=>{paint();});
 })();
 </script>
 
@@ -8945,6 +8986,6 @@ window.BoraLive=Object.freeze({open,end});draw();
 })();
 
 </script>
-</body>
   <script type="module" src="./firebase-auth.js"></script>
+</body>
 </html>
