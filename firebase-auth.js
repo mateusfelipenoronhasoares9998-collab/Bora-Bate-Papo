@@ -1,0 +1,28 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
+
+// Confira os valores com Firebase Console > Configuracoes do projeto > Seus apps.
+const firebaseConfig = {
+  apiKey: 'AIzaSyC4CPKR7YIHfnK3FKyUQahv0nORZlSpbWU',
+  authDomain: 'boranexus-22d36.firebaseapp.com',
+  projectId: 'boranexus-22d36',
+  appId: '1:397073235228:web:5a5da0b3ffdde4d91c8ed9'
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+window.BoraAuth = Object.freeze({
+  loginGoogle: () => signInWithPopup(auth, googleProvider),
+  criarConta: (email, senha) => createUserWithEmailAndPassword(auth, email, senha),
+  entrar: (email, senha) => signInWithEmailAndPassword(auth, email, senha),
+  sair: () => signOut(auth),
+  observarLogin: (callback) => onAuthStateChanged(auth, callback)
+});
+
+window.dispatchEvent(new Event('bora-auth-ready'));
