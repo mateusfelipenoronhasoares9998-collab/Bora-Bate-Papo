@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="bora-version" content="32.1-voice-fix">
+<meta name="bora-version" content="32.3-captura-auditada">
 <script id="bora-device-lock-boot">
 (function () {
   'use strict';
@@ -42,7 +42,7 @@
 })();
 
 </script>
-<script id="bora-compat26">if(!AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
+<script id="bora-compat26">if(window.AbortSignal && !AbortSignal.timeout)AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException("Tempo esgotado","TimeoutError")),ms);return c.signal;};</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BoraNexus — seu nome, sua turma, seu universo</title>
 <meta name="description" content="Bora é um chat de voz, vídeo e tela para grupos de amigos: crie uma sala, mande o link e converse direto no navegador, com efeitos de voz e compartilhamento de tela.">
@@ -4340,14 +4340,12 @@ async function callFriend(id){if(members[id]&&members[id].voice)await boraSelect
 $("vjoin").onclick=function(){if(stream||joining)leaveCall();else joinCall()};
 $("vmute").onclick=function(){if(!stream)return;var t=stream.getAudioTracks()[0];t.enabled=!t.enabled;$("vmute").textContent=t.enabled?"Mutar":"Desmutar"};
 async function getScreen(){
+  // Screen capture requires a secure origin and a direct user gesture.
+  // Do not retry after rejection: the browser may have consumed user activation.
+  if(!window.isSecureContext)throw new DOMException('Abra o BoraNexus em HTTPS para compartilhar a tela.','SecurityError');
   var md=navigator.mediaDevices||{};
-  if(!md.getDisplayMedia)throw new DOMException("Compartilhamento de tela não é suportado neste navegador.","NotSupportedError");
-  var opts={video:{frameRate:{ideal:30,max:60},width:{ideal:1920,max:1920},height:{ideal:1080,max:1080}},audio:true};
-  try{return await md.getDisplayMedia(opts)}
-  catch(e){
-    if(e&&(e.name==="NotAllowedError"||e.name==="AbortError"||e.name==="SecurityError"))throw e;
-    try{return await md.getDisplayMedia({video:true,audio:true})}catch(e2){throw e2}
-  }
+  if(typeof md.getDisplayMedia!=='function')throw new DOMException('Este navegador ou conversor APK não oferece compartilhamento de tela. Em Android, um aplicativo nativo precisa implementar MediaProjection.','NotSupportedError');
+  return md.getDisplayMedia({video:true,audio:false});
 }
 function hintScreen(){var v=screenSt.getVideoTracks()[0],a=screenSt.getAudioTracks()[0];
   try{v.contentHint="motion"}catch(e){} try{v.applyConstraints({frameRate:{ideal:30,max:60}}).catch(function(){})}catch(e){}
@@ -4511,10 +4509,10 @@ async function login(){
  if(busy)return;
  busy=true;paint();note('Abrindo o login do Google…');
  try{
-  if(!window.BoraAuth)throw Error('Firebase não carregou. Confira firebase-auth.js no GitHub.');
+  if(!window.BoraAuth)throw Error('Login Google ainda não carregado. Verifique a conexão e o endereço autorizado no Firebase.');
   const result=await window.BoraAuth.loginGoogle();
   const fbUser=result?.user;
-  if(!fbUser?.uid)throw Error('O Google não retornou uma conta válida.');
+  if(!fbUser?.uid)return; // Redirecionamento: o resultado chega após a volta ao aplicativo.
   const name=String(fbUser.displayName||fbUser.email?.split('@')[0]||'Amigo').trim().slice(0,20);
   user={id:fbUser.uid,uid:fbUser.uid,name,email:fbUser.email||'',photo:fbUser.photoURL||''};
   if(get('nick'))get('nick').value=name;
@@ -4529,7 +4527,7 @@ async function login(){
  }catch(error){console.error('BoraNexus: falha no login Google',error);note(errorMessage(error));}
  finally{busy=false;paint();}
 }
-function open(){if(!dialog.open)dialog.showModal();if(!window.BoraAuth)note('Preparando conexão com o Google…');else note('Toque em Entrar com Google para escolher sua conta.');}
+function open(){if(!dialog.open)dialog.showModal();if(!window.BoraAuth)note('O login Google precisa de internet e de um navegador compatível com autenticação externa.');else note('Toque em Entrar com Google para escolher sua conta.');}
 dialog.querySelectorAll('[data-google-close]').forEach(el=>el.onclick=()=>{
  dialog.close();
  if(el.hasAttribute('data-google-guest')&&!user){
@@ -8986,6 +8984,53 @@ window.BoraLive=Object.freeze({open,end});draw();
 })();
 
 </script>
-  <script type="module" src="./firebase-auth.js"></script>
+  <script type="module" id="bora-firebase-google-v32-5">
+const CONFIG = {apiKey:"AIzaSyC4CPKR7YIHfnK3FKyUQahv0nORZlSPbWU",authDomain:"boranexus-22d36.firebaseapp.com",projectId:"boranexus-22d36",storageBucket:"boranexus-22d36.firebasestorage.app",messagingSenderId:"397073235228",appId:"1:397073235228:web:5a5da0b3ffdde4d91c8ed9",measurementId:"G-76MDH1NL3P"};
+const VERSION='https://www.gstatic.com/firebasejs/10.14.1/';
+const status=(msg)=>{console.info('[Bora Google]',msg);document.querySelectorAll('[data-google-status],#googleStatus').forEach(el=>el.textContent=msg);};
+try {
+ if(location.protocol==='file:') throw Error('Abra o aplicativo em uma origem HTTPS autorizada. O login não funciona em file://.');
+ const [apps, sdk] = await Promise.all([import(VERSION+'firebase-app.js'),import(VERSION+'firebase-auth.js')]);
+ const app=apps.getApps().find(a=>a.options.projectId===CONFIG.projectId)||apps.initializeApp(CONFIG,'boranexus-google');
+ const auth=sdk.getAuth(app);
+ await sdk.setPersistence(auth,sdk.browserLocalPersistence);
+ const provider=new sdk.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});
+ window.BoraAuth={
+  loginGoogle:()=>sdk.signInWithRedirect(auth,provider),
+  logout:()=>sdk.signOut(auth),
+  get user(){return auth.currentUser;}
+ };
+ const applyUser=(u)=>{
+  if(!u)return;
+  const info={id:u.uid,uid:u.uid,name:u.displayName||'Amigo',email:u.email||'',photo:u.photoURL||''};
+  try{localStorage.setItem('bl-nick',info.name.slice(0,20));}catch{}
+  window.dispatchEvent(new CustomEvent('bora-google-session',{detail:{user:info}}));
+  status('Conectado como '+info.name);
+ };
+ sdk.onAuthStateChanged(auth,applyUser);
+ try{const result=await sdk.getRedirectResult(auth);if(result?.user)applyUser(result.user);}catch(e){status('Falha no retorno do Google: '+(e.code||e.message));}
+ if(!auth.currentUser)status('Login Google pronto.');
+} catch(e){status('Login Google indisponível: '+(e.code||e.message));}
+</script>
+<script id="bora-diagnostico-32-2">
+(function(){'use strict';
+const report=[];
+function record(type,error){const message=String(error?.message||error||'Erro desconhecido').slice(0,400);report.push({at:new Date().toLocaleTimeString(),type,message});if(report.length>40)report.shift();console.warn('[BoraNexus diagnóstico]',type,message);}
+window.addEventListener('error',e=>record('JavaScript',e.error||e.message));
+window.addEventListener('unhandledrejection',e=>record('Promessa',e.reason));
+function status(){return [
+ 'Contexto seguro: '+(isSecureContext?'sim':'não'),
+ 'Microfone/câmera: '+(!!navigator.mediaDevices?.getUserMedia?'API disponível (permissão ainda não testada)':'API indisponível'),
+ 'Compartilhar tela: '+(!!navigator.mediaDevices?.getDisplayMedia?'API disponível (permissão ainda não testada)':'indisponível neste ambiente'),
+ 'Login Google: '+(!!window.BoraAuth?'módulo disponível':'módulo ausente; requer Firebase'),
+ 'PeerJS: '+(!!window.Peer?'carregado':'não carregado'),
+ 'Origem: '+location.protocol+'//'+(location.host||'(arquivo local)'),
+ 'Erros registrados: '+report.length].join('\n');}
+function show(){let d=document.getElementById('boraDiagnostic32');if(!d){d=document.createElement('dialog');d.id='boraDiagnostic32';d.style.cssText='max-width:min(92vw,620px);width:100%;max-height:85vh;overflow:auto;background:#161322;color:white;border:1px solid #8574bb;border-radius:14px;padding:20px;z-index:2147483646';const title=document.createElement('h2');title.textContent='Diagnóstico BoraNexus';const output=document.createElement('pre');output.id='boraDiagnosticOutput';output.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:13px monospace';const close=document.createElement('button');close.textContent='Fechar';close.onclick=()=>d.close();d.append(title,output,close);document.body.append(d);}d.querySelector('pre').textContent=status()+'\n\n'+report.map(x=>x.at+' '+x.type+': '+x.message).join('\n');if(!d.open)d.showModal();}
+window.BoraDiagnostics={show,status,errors:report};
+function init(){const btn=document.createElement('button');btn.type='button';btn.textContent='Diagnóstico';btn.title='Verificar suporte e erros do BoraNexus';btn.style.cssText='position:fixed;bottom:10px;right:10px;z-index:9998;background:#30234c;color:#fff;border:1px solid #8e79b8;border-radius:12px;padding:7px 11px;font-size:12px;opacity:.85';btn.addEventListener('click',show);document.body.append(btn);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
 </body>
 </html>
