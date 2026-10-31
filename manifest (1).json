@@ -1,0 +1,48 @@
+{
+  "background_color": "#ffffff",
+  "description": "Bora é um chat de voz, vídeo e tela para grupos de amigos: crie uma sala, mande o link e converse direto no navegador, com efeitos de voz e compartilhamento de tela.",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "BoraNexus",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "BoraNexus",
+  "start_url": "/https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Nexus/",
+  "theme_color": "#101426",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTciIGZpbGw9IiMxMTEwMTgiLz48cGF0aCBkPSJNMTUgMTdRMzIgOCA0OSAxN0w0NSA0NVEzMiA2MCAxOSA0NVoiIGZpbGw9IiMwODA4MGQiIHN0cm9rZT0iI2FjODdmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMzIiIHk9IjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjM1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj4/PC90ZXh0Pjwvc3ZnPg==",
+      "type": "image/svg+xml",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Nexus/icons/icon-192.png",
+      "isSquare": false,
+      "isPng": true,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://mateusfelipenoronhasoares9998-collab.github.io/Bora-Nexus/icons/bora-original.jpg",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": true,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ]
+}
